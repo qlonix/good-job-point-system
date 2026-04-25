@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { renderToString } from 'react-dom/server';
 import Header from '../../components/Header';
+import CropImageModal from '../../components/CropImageModal';
 import { getChildren, addChild, updateChild, deleteChild, adjustPoints, getTotalPoints } from '../../data/store';
 import { resizeImage } from '../../utils/image';
 
@@ -17,8 +18,9 @@ export default function ChildManager() {
   const [qrModal, setQrModal] = useState(null);
   const [adjustModal, setAdjustModal] = useState(null);
   const [adjustForm, setAdjustForm] = useState({ category: 'otetsudai', amount: 0 });
+  const [cropConfig, setCropConfig] = useState(null);
 
-  const refresh = () => setChildren(getChildren());
+  const refresh = () => setChildren([...getChildren()]);
 
   const openAdd = () => {
     setEditing(null);
@@ -32,40 +34,40 @@ export default function ChildManager() {
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name.trim()) return;
     if (editing) {
-      updateChild(editing.id, form);
+      await updateChild(editing.id, form);
     } else {
-      addChild(form);
+      await addChild(form);
     }
     setShowModal(false);
     refresh();
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (confirm('本当に削除しますか？')) {
-      deleteChild(id);
+      await deleteChild(id);
       refresh();
     }
   };
 
-  const handleAdjust = () => {
+  const handleAdjust = async () => {
     if (!adjustModal || !adjustForm.amount) return;
-    adjustPoints(adjustModal.id, adjustForm.category, Number(adjustForm.amount));
+    await adjustPoints(adjustModal.id, adjustForm.category, Number(adjustForm.amount));
     setAdjustModal(null);
     refresh();
   };
 
-  const handleImageUpload = async (e, field, maxSize) => {
+  const handleImageUpload = (e, field, aspect, maxSize) => {
     const file = e.target.files[0];
     if (!file) return;
-    try {
-      const base64 = await resizeImage(file, maxSize);
-      setForm(prev => ({ ...prev, [field]: base64 }));
-    } catch (err) {
-      alert('画像の読み込みに失敗しました');
-    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropConfig({ imageSrc: reader.result, aspect, maxSize, field });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const generateCardHtml = (child) => {
@@ -296,7 +298,7 @@ export default function ChildManager() {
                   <div style={{ textAlign: 'center' }}>
                     <label className="btn btn-sm btn-outline" style={{ display: 'inline-block', cursor: 'pointer' }}>
                       📷 好きな画像をアップロード
-                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleImageUpload(e, 'avatarImage', 200)} />
+                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleImageUpload(e, 'avatarImage', 1, 200)} />
                     </label>
                   </div>
                 </>
@@ -314,7 +316,7 @@ export default function ChildManager() {
                 <div style={{ textAlign: 'center', padding: '12px', border: '2px dashed #ccc', borderRadius: 8 }}>
                   <label style={{ cursor: 'pointer', color: 'var(--text-light)', fontSize: '0.9rem' }}>
                     🌄 背景画像を選択
-                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleImageUpload(e, 'headerImage', 600)} />
+                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleImageUpload(e, 'headerImage', 1.8, 600)} />
                   </label>
                 </div>
               )}
@@ -349,6 +351,20 @@ export default function ChildManager() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Crop Modal */}
+      {cropConfig && (
+        <CropImageModal
+          imageSrc={cropConfig.imageSrc}
+          aspect={cropConfig.aspect}
+          maxSize={cropConfig.maxSize}
+          onCropComplete={(base64) => {
+            setForm(prev => ({ ...prev, [cropConfig.field]: base64 }));
+            setCropConfig(null);
+          }}
+          onCancel={() => setCropConfig(null)}
+        />
       )}
     </div>
   );
