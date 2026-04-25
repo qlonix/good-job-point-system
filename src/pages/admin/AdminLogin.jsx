@@ -48,7 +48,7 @@ export default function AdminLogin() {
             key={i}
             ref={refs[i]}
             className="pin-digit"
-            type="tel"
+            type="password"
             inputMode="numeric"
             maxLength={1}
             value={d}

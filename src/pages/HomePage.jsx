@@ -31,13 +31,16 @@ export default function HomePage() {
         { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
-          // QR contains child ID like "otetsudai:CHILD_ID"
-          const match = decodedText.match(/^otetsudai:(.+)$/);
-          if (match) {
+          // QR contains child ID like "otetsudai:CHILD_ID" or "https://gj.qlo.jp/child/CHILD_ID"
+          const matchOld = decodedText.match(/^otetsudai:(.+)$/);
+          const matchUrl = decodedText.match(/\/child\/(.+)$/);
+          const childId = matchOld ? matchOld[1] : (matchUrl ? matchUrl[1] : null);
+          
+          if (childId) {
             scanner.stop().catch(() => {});
             html5QrRef.current = null;
             setScanning(false);
-            handleChildFound(match[1]);
+            handleChildFound(childId);
           }
         },
         () => {} // ignore scan errors
