@@ -53,7 +53,7 @@ export default function ChildDashboard() {
       {child.headerImage && (
         <div style={{
           margin: '0 -16px',
-          height: '140px',
+          aspectRatio: '1.5',
           backgroundImage: `url('${child.headerImage}')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center'

@@ -244,13 +244,24 @@ export default function ChildManager() {
               <p style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginBottom: 4 }}>
                 この子の固有URL:
               </p>
-              <input 
-                type="text" 
-                className="input" 
-                readOnly 
-                value={`${window.location.origin}${window.location.pathname}#/child/${qrModal.id}`} 
-                style={{ fontSize: '0.8rem', textAlign: 'center', backgroundColor: '#f0f0f0' }} 
-              />
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                <input 
+                  type="text" 
+                  className="input" 
+                  readOnly 
+                  value={`${window.location.origin}${window.location.pathname}#/child/${qrModal.id}`} 
+                  style={{ fontSize: '0.8rem', textAlign: 'center', backgroundColor: '#f0f0f0', flex: 1 }} 
+                />
+                <button 
+                  className="btn btn-sm btn-outline" 
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}#/child/${qrModal.id}`);
+                    alert('URLをコピーしました！');
+                  }}
+                >
+                  📋 コピー
+                </button>
+              </div>
             </div>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginBottom: 16 }}>
               このQRコードを印刷してカードに貼り付けてください

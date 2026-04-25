@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header';
-import { getPin, setPin, exportData, importData, resetData } from '../../data/store';
+import { getPin, setPin, exportData, importData, resetData, resetAllPoints } from '../../data/store';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -54,6 +54,13 @@ export default function Settings() {
     }
   };
 
+  const handleResetPoints = async () => {
+    if (confirm('全員のポイントと履歴のみをゼロにしますか？\n(子どもやタスクの設定は残ります)\n\nこの操作は取り消せません！')) {
+      await resetAllPoints();
+      alert('ポイントと履歴をリセットしました');
+    }
+  };
+
   return (
     <div className="page admin-page">
       <Header title="⚙️ 設定" showBack />
@@ -77,7 +84,9 @@ export default function Settings() {
         <div className="flex-col gap-8">
           <button className="btn btn-outline btn-full" onClick={handleExport}>📤 データをエクスポート</button>
           <button className="btn btn-outline btn-full" onClick={handleImport}>📥 データをインポート</button>
-          <button className="btn btn-danger btn-full" onClick={handleReset}>🗑 データをリセット</button>
+          <div style={{ height: 16 }}></div>
+          <button className="btn btn-danger btn-full" onClick={handleResetPoints}>⚠️ ポイントと履歴のみをリセット</button>
+          <button className="btn btn-danger btn-full" onClick={handleReset} style={{ opacity: 0.5 }}>🗑 すべてのデータをリセット</button>
         </div>
       </div>
     </div>

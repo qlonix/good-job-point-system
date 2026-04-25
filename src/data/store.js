@@ -201,3 +201,11 @@ export async function importData(jsonString) {
 export async function resetData() {
   console.warn('Reset not supported via API client directly');
 }
+
+export async function resetAllPoints() {
+  await fetchApi('/points/resetAll', { method: 'POST' });
+  localData.children.forEach(child => {
+    child.points = { otetsudai: 0, obenkyo: 0 };
+    child.history = [];
+  });
+}

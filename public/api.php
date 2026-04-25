@@ -199,6 +199,16 @@ if (preg_match('/^children\/([^\/]+)\/points\/adjust$/', $route, $matches) && $m
     exit;
 }
 
+if ($route === 'points/resetAll' && $method === 'POST') {
+    foreach ($data['children'] as &$child) {
+        $child['points'] = ['otetsudai' => 0, 'obenkyo' => 0];
+        $child['history'] = [];
+    }
+    save();
+    echo json_encode(['success' => true]);
+    exit;
+}
+
 if ($route === 'tasks') {
     if ($method === 'GET') {
         $cat = $_GET['category'] ?? null;

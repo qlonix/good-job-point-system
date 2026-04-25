@@ -82,13 +82,13 @@ export default function ApprovalModal({ actionLabel, actionEmoji, childName, onA
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
               <input
                 className="input"
-                type="password"
+                type="tel"
                 inputMode="numeric"
                 maxLength={4}
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
                 placeholder="0000"
-                style={{ width: 140, textAlign: 'center', fontSize: '1.5rem', fontWeight: 900, letterSpacing: 8 }}
+                style={{ width: 140, textAlign: 'center', fontSize: '1.5rem', fontWeight: 900, letterSpacing: 8, WebkitTextSecurity: 'disc' }}
                 autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && handlePinSubmit()}
               />

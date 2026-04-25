@@ -11,7 +11,7 @@ export default function TaskManager() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', emoji: '✨', points: 10, category: 'otetsudai' });
 
-  const refresh = () => setTasks(getTasks());
+  const refresh = () => setTasks([...getTasks()]);
   const filtered = tasks.filter((t) => t.category === tab);
 
   const openAdd = () => {
@@ -26,16 +26,16 @@ export default function TaskManager() {
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name.trim()) return;
-    if (editing) updateTask(editing.id, form);
-    else addTask(form);
+    if (editing) await updateTask(editing.id, form);
+    else await addTask(form);
     setShowModal(false);
     refresh();
   };
 
-  const handleDelete = (id) => {
-    if (confirm('削除しますか？')) { deleteTask(id); refresh(); }
+  const handleDelete = async (id) => {
+    if (confirm('削除しますか？')) { await deleteTask(id); refresh(); }
   };
 
   return (

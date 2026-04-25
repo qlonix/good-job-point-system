@@ -10,20 +10,20 @@ export default function RewardManager() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', emoji: '🎁', cost: 20 });
 
-  const refresh = () => setRewards(getRewards());
+  const refresh = () => setRewards([...getRewards()]);
 
   const openAdd = () => { setEditing(null); setForm({ name: '', emoji: '🎁', cost: 20 }); setShowModal(true); };
   const openEdit = (r) => { setEditing(r); setForm({ name: r.name, emoji: r.emoji, cost: r.cost }); setShowModal(true); };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name.trim()) return;
-    if (editing) updateReward(editing.id, form);
-    else addReward(form);
+    if (editing) await updateReward(editing.id, form);
+    else await addReward(form);
     setShowModal(false);
     refresh();
   };
 
-  const handleDelete = (id) => { if (confirm('削除しますか？')) { deleteReward(id); refresh(); } };
+  const handleDelete = async (id) => { if (confirm('削除しますか？')) { await deleteReward(id); refresh(); } };
 
   return (
     <div className="page admin-page">
