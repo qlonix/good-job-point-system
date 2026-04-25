@@ -82,11 +82,11 @@ export default function ApprovalModal({ actionLabel, actionEmoji, childName, onA
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
               <input
                 className="input"
-                type="tel"
+                type="text"
                 inputMode="numeric"
                 maxLength={4}
                 value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                 placeholder="0000"
                 style={{ width: 140, textAlign: 'center', fontSize: '1.5rem', fontWeight: 900, letterSpacing: 8, WebkitTextSecurity: 'disc' }}
                 autoFocus

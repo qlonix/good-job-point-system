@@ -10,12 +10,13 @@ export default function AdminLogin() {
   const refs = [useRef(), useRef(), useRef(), useRef()];
 
   const handleChange = (idx, val) => {
-    if (!/^\d?$/.test(val)) return;
+    const char = val.slice(-1); // 複数文字入った場合は最後の一文字を取る
+    if (!/^\d?$/.test(char)) return;
     const next = [...digits];
-    next[idx] = val;
+    next[idx] = char;
     setDigits(next);
     setError(false);
-    if (val && idx < 3) refs[idx + 1].current?.focus();
+    if (char && idx < 3) refs[idx + 1].current?.focus();
     if (next.every((d) => d !== '')) {
       const pin = next.join('');
       if (pin === getPin()) {
@@ -48,9 +49,8 @@ export default function AdminLogin() {
             key={i}
             ref={refs[i]}
             className="pin-digit"
-            type="tel"
+            type="text"
             inputMode="numeric"
-            maxLength={1}
             value={d}
             onChange={(e) => handleChange(i, e.target.value)}
             onKeyDown={(e) => handleKeyDown(i, e)}
