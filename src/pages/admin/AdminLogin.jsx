@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header';
 import { getPin } from '../../data/store';
 
+const IS_WEBKIT = 'WebkitTextSecurity' in document.documentElement.style;
+
 export default function AdminLogin() {
   const navigate = useNavigate();
   const [digits, setDigits] = useState(['', '', '', '']);
@@ -49,7 +51,7 @@ export default function AdminLogin() {
             key={i}
             ref={refs[i]}
             className="pin-digit"
-            type="text"
+            type={IS_WEBKIT ? 'text' : 'password'}
             inputMode="numeric"
             value={d}
             onChange={(e) => handleChange(i, e.target.value)}

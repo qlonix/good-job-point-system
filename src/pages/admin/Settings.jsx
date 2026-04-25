@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header';
 import { getPin, setPin, exportData, importData, resetData, resetAllPoints } from '../../data/store';
 
+const IS_WEBKIT = 'WebkitTextSecurity' in document.documentElement.style;
+
 export default function Settings() {
   const navigate = useNavigate();
   const [currentPin, setCurrentPin] = useState('');
@@ -69,11 +71,11 @@ export default function Settings() {
         <h3 style={{ marginBottom: 12 }}>🔑 PINコード変更</h3>
         <div className="form-group">
           <label className="label">現在のPIN</label>
-          <input className="input" type="text" inputMode="numeric" maxLength={4} value={currentPin} onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, ''))} style={{ WebkitTextSecurity: 'disc' }} />
+          <input className="input" type={IS_WEBKIT ? 'text' : 'password'} inputMode="numeric" maxLength={4} value={currentPin} onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, ''))} style={{ WebkitTextSecurity: 'disc' }} />
         </div>
         <div className="form-group">
           <label className="label">新しいPIN (4桁)</label>
-          <input className="input" type="text" inputMode="numeric" maxLength={4} value={newPin} onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))} style={{ WebkitTextSecurity: 'disc' }} />
+          <input className="input" type={IS_WEBKIT ? 'text' : 'password'} inputMode="numeric" maxLength={4} value={newPin} onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))} style={{ WebkitTextSecurity: 'disc' }} />
         </div>
         {pinMsg && <p style={{ fontSize: '0.85rem', fontWeight: 700, color: pinMsg.includes('✅') ? '#2a7d56' : 'var(--pink-dark)', marginBottom: 8 }}>{pinMsg}</p>}
         <button className="btn btn-admin btn-full" onClick={handlePinChange}>PINを変更</button>

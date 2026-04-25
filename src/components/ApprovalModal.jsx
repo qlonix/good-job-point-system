@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { getPin } from '../data/store';
 
+const IS_WEBKIT = 'WebkitTextSecurity' in document.documentElement.style;
+
 export default function ApprovalModal({ actionLabel, actionEmoji, childName, onApprove, onCancel }) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
@@ -82,7 +84,7 @@ export default function ApprovalModal({ actionLabel, actionEmoji, childName, onA
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
               <input
                 className="input"
-                type="text"
+                type={IS_WEBKIT ? 'text' : 'password'}
                 inputMode="numeric"
                 maxLength={4}
                 value={pin}
