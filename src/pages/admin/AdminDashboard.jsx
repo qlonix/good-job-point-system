@@ -3,8 +3,10 @@ import Header from '../../components/Header';
 
 const MENU = [
   { path: '/admin/children', emoji: '👧', label: '子ども管理', sub: 'カード登録・ポイント調整' },
-  { path: '/admin/tasks', emoji: '📋', label: 'タスク管理', sub: 'おてつだい・おべんきょう' },
+  { path: '/admin/tasks', emoji: '📋', label: 'タスク管理', sub: '各カテゴリのタスク編集' },
+  { path: '/admin/categories', emoji: '🏠', label: 'カテゴリ管理', sub: 'ボタンの追加・名前変更' },
   { path: '/admin/rewards', emoji: '🎁', label: 'ごほうび管理', sub: '交換アイテム設定' },
+  { path: '/admin/emojis', emoji: '✨', label: '絵文字管理', sub: '選択肢の追加・削除' },
   { path: '/admin/history', emoji: '📊', label: 'ポイント履歴', sub: '獲得・利用の記録' },
   { path: '/admin/settings', emoji: '⚙️', label: '設定', sub: 'PIN変更・データ管理' },
 ];

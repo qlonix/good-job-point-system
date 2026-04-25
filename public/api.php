@@ -32,6 +32,12 @@ $defaultData = [
         ['id' => 'r3', 'name' => 'ゲーム15分(ふん)', 'emoji' => '🎮', 'cost' => 50],
         ['id' => 'r4', 'name' => 'おこづかい100円(えん)', 'emoji' => '💰', 'cost' => 100],
     ],
+    'categories' => [
+        ['id' => 'seikatsu', 'name' => 'せいかつ', 'emoji' => '🏠', 'color' => '#ff9a9e'],
+        ['id' => 'otetsudai', 'name' => 'おてつだい', 'emoji' => '🧹', 'color' => '#3db87a'],
+        ['id' => 'obenkyo', 'name' => 'おべんきょう', 'emoji' => '📚', 'color' => '#4fa8e0']
+    ],
+    'emojis' => ['⭐','🍪','🎮','📺','💰','🎡','🍦','📚','🎨','🧸','🎶','🏊','🎂','🍕','🎪','🎠','🌟','🍫','🎯','🎈','🎁'],
     'pin' => '0000'
 ];
 
@@ -41,6 +47,10 @@ if (!file_exists($dataFile)) {
 
 $data = json_decode(file_get_contents($dataFile), true);
 if (!$data) $data = $defaultData;
+else {
+    if (!isset($data['categories'])) $data['categories'] = $defaultData['categories'];
+    if (!isset($data['emojis'])) $data['emojis'] = $defaultData['emojis'];
+}
 
 function save() {
     global $dataFile, $data;
@@ -300,6 +310,39 @@ if ($route === 'pin') {
         echo json_encode(['success' => true]);
         exit;
     }
+}
+
+if ($route === 'categories') {
+    if ($method === 'GET') {
+        echo json_encode($data['categories'] ?? []);
+        exit;
+    }
+    if ($method === 'POST') {
+        $data['categories'] = $body;
+        save();
+        echo json_encode(['success' => true]);
+        exit;
+    }
+}
+
+if ($route === 'emojis') {
+    if ($method === 'GET') {
+        echo json_encode($data['emojis'] ?? []);
+        exit;
+    }
+    if ($method === 'POST') {
+        $data['emojis'] = $body;
+        save();
+        echo json_encode(['success' => true]);
+        exit;
+    }
+}
+
+if ($route === 'tasks/reorder' && $method === 'POST') {
+    $data['tasks'] = $body;
+    save();
+    echo json_encode(['success' => true]);
+    exit;
 }
 
 if ($route === 'import' && $method === 'POST') {

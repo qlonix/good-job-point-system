@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import Header from '../components/Header';
 import Confetti from '../components/Confetti';
-import { getTasks, addPoints, getChildById } from '../data/store';
+import { getTasks, addPoints, getChildById, getCategories } from '../data/store';
 import { renderRuby } from '../utils/format';
 
 export default function TaskSelect() {
@@ -23,12 +23,9 @@ export default function TaskSelect() {
     }
   };
 
-  const titleMap = {
-    otetsudai: <span>🧹 おてつだい</span>,
-    obenkyo: <span>📚 おべんきょう</span>,
-    seikatsu: <span>🏠 せいかつ</span>
-  };
-  const title = titleMap[category] || 'タスク';
+  const categories = getCategories();
+  const currentCat = categories.find((c) => c.id === category);
+  const title = currentCat ? <span>{currentCat.emoji} {currentCat.name}</span> : 'タスク';
 
   return (
     <div className="page">

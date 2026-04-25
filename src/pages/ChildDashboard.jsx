@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Confetti from '../components/Confetti';
 import ApprovalModal from '../components/ApprovalModal';
-import { getChildById, getTotalPoints, getTasks, addPoints, getRewards } from '../data/store';
+import { getChildById, getTotalPoints, getTasks, addPoints, getRewards, getCategories } from '../data/store';
 
 export default function ChildDashboard() {
   const { id } = useParams();
@@ -24,11 +24,14 @@ export default function ChildDashboard() {
 
   const total = getTotalPoints(child);
 
+  const categories = getCategories();
   const ACTIONS = [
-    { key: 'shukudai', emoji: '📝', label: <span><ruby>宿題<rt>しゅくだい</rt></ruby></span>, color: 'var(--blue)', gradient: 'linear-gradient(135deg, var(--blue), #4fa8e0)' },
-    { key: 'okataduke', emoji: '🧹', label: <span><ruby>片付<rt>かたづ</rt></ruby>け</span>, color: 'var(--mint)', gradient: 'linear-gradient(135deg, var(--mint), #3db87a)' },
-    { key: 'seikatsu', emoji: '🏠', label: 'せいかつ', color: 'var(--orange)', gradient: 'linear-gradient(135deg, #ff9a9e, #fecfef)' },
-    { key: 'otetsudai', emoji: '🍽️', label: 'おてつだい', color: 'var(--purple)', gradient: 'linear-gradient(135deg, var(--purple), #9b7af7)' },
+    ...categories.map((c) => ({
+      key: c.id,
+      emoji: c.emoji,
+      label: renderRuby(c.name),
+      gradient: `linear-gradient(135deg, ${c.color || '#9b7af7'}, #9b7af7)`
+    })),
     { key: 'reward', emoji: '🎁', label: <span><ruby>使<rt>つか</rt></ruby>う</span>, color: 'var(--yellow)', gradient: 'linear-gradient(135deg, var(--yellow), var(--orange))' },
   ];
 
@@ -41,9 +44,7 @@ export default function ChildDashboard() {
     if (action.key === 'reward') {
       navigate(`/child/${id}/rewards`);
     } else {
-      // Find matching tasks and navigate to selection
-      const categoryMap = { shukudai: 'obenkyo', okataduke: 'otetsudai', otetsudai: 'otetsudai', seikatsu: 'seikatsu' };
-      navigate(`/child/${id}/tasks/${categoryMap[action.key]}`);
+      navigate(`/child/${id}/tasks/${action.key}`);
     }
   };
 
@@ -77,18 +78,12 @@ export default function ChildDashboard() {
           <div className="point-label">ポイント</div>
 
           <div className="point-categories">
-            <div className="point-cat otetsudai">
-              <div className="point-cat-value">{child.points.otetsudai || 0}</div>
-              <div className="point-cat-label">🧹 おてつだい</div>
-            </div>
-            <div className="point-cat obenkyo">
-              <div className="point-cat-value">{child.points.obenkyo || 0}</div>
-              <div className="point-cat-label">📚 おべんきょう</div>
-            </div>
-            <div className="point-cat seikatsu" style={{ borderLeft: '1px solid #eee' }}>
-              <div className="point-cat-value">{child.points.seikatsu || 0}</div>
-              <div className="point-cat-label">🏠 せいかつ</div>
-            </div>
+            {categories.map((c, i) => (
+              <div key={c.id} className="point-cat" style={i > 0 ? { borderLeft: '1px solid #eee' } : {}}>
+                <div className="point-cat-value">{child.points[c.id] || 0}</div>
+                <div className="point-cat-label">{c.emoji} {c.name}</div>
+              </div>
+            ))}
           </div>
         </div>
 

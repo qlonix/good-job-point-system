@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import Header from '../../components/Header';
-import { getTasks, addTask, updateTask, deleteTask } from '../../data/store';
-
-const EMOJIS = ['🍽️','🧹','👕','🐕','🗑️','🍳','👟','📝','📖','✍️','🔢','🔤','🧽','🛁','🌱','🧺','📐','🎨','🎵','💪'];
+import { getTasks, addTask, updateTask, deleteTask, getCategories, getEmojis, reorderTasks } from '../../data/store';
 
 export default function TaskManager() {
-  const [tab, setTab] = useState('otetsudai');
+  const categories = getCategories();
+  const emojis = getEmojis();
+  const [tab, setTab] = useState(categories[0]?.id || '');
   const [tasks, setTasks] = useState(getTasks());
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', emoji: '✨', points: 10, category: 'otetsudai' });
+  const [form, setForm] = useState({ name: '', emoji: '✨', points: 10, category: categories[0]?.id || '' });
 
   const refresh = () => setTasks([...getTasks()]);
   const filtered = tasks.filter((t) => t.category === tab);
@@ -38,14 +38,33 @@ export default function TaskManager() {
     if (confirm('削除しますか？')) { await deleteTask(id); refresh(); }
   };
 
+  const handleMove = async (id, dir) => {
+    const idx = tasks.findIndex(t => t.id === id);
+    if ((dir === -1 && idx === 0) || (dir === 1 && idx === tasks.length - 1)) return;
+    const nextIdx = tasks.findIndex((t, i) => i > (dir === -1 ? -1 : idx) && i < (dir === -1 ? idx : tasks.length) && t.category === tab && (dir === -1 ? i < idx : i > idx));
+    // Actually, simple swap within the filtered list might be confusing if global order matters.
+    // Let's find the sibling within the SAME category.
+    const sameCatIndices = tasks.map((t, i) => t.category === tab ? i : -1).filter(i => i !== -1);
+    const pos = sameCatIndices.indexOf(idx);
+    if ((dir === -1 && pos === 0) || (dir === 1 && pos === sameCatIndices.length - 1)) return;
+    
+    const targetIdx = sameCatIndices[pos + dir];
+    const newTasks = [...tasks];
+    [newTasks[idx], newTasks[targetIdx]] = [newTasks[targetIdx], newTasks[idx]];
+    await reorderTasks(newTasks);
+    refresh();
+  };
+
   return (
     <div className="page admin-page">
       <Header title="📋 タスク管理" showBack />
 
       <div className="tabs">
-        <button className={`tab ${tab === 'otetsudai' ? 'active' : ''}`} onClick={() => setTab('otetsudai')}>🧹 おてつだい</button>
-        <button className={`tab ${tab === 'obenkyo' ? 'active' : ''}`} onClick={() => setTab('obenkyo')}>📚 おべんきょう</button>
-        <button className={`tab ${tab === 'seikatsu' ? 'active' : ''}`} onClick={() => setTab('seikatsu')}>🏠 せいかつ</button>
+        {categories.map(c => (
+          <button key={c.id} className={`tab ${tab === c.id ? 'active' : ''}`} onClick={() => setTab(c.id)}>
+            {c.emoji} {c.name}
+          </button>
+        ))}
       </div>
 
       <button className="btn btn-admin btn-full" onClick={openAdd}>+ タスクを追加</button>
@@ -62,6 +81,10 @@ export default function TaskManager() {
               <div className="item-sub">{t.points} ポイント</div>
             </div>
             <div className="item-actions">
+              <div className="flex gap-4 mr-8">
+                <button className="btn btn-sm btn-outline" style={{ padding: '2px 8px' }} onClick={() => handleMove(t.id, -1)}>↑</button>
+                <button className="btn btn-sm btn-outline" style={{ padding: '2px 8px' }} onClick={() => handleMove(t.id, 1)}>↓</button>
+              </div>
               <button className="btn btn-sm btn-outline" onClick={() => openEdit(t)}>✏️</button>
               <button className="btn btn-sm btn-danger" onClick={() => handleDelete(t.id)}>🗑</button>
             </div>
@@ -80,7 +103,7 @@ export default function TaskManager() {
             <div className="form-group">
               <label className="label">絵文字</label>
               <div className="emoji-grid">
-                {EMOJIS.map((e) => (
+                {emojis.map((e) => (
                   <button key={e} className={`emoji-option ${form.emoji === e ? 'selected' : ''}`} onClick={() => setForm({ ...form, emoji: e })}>{e}</button>
                 ))}
               </div>
@@ -92,9 +115,9 @@ export default function TaskManager() {
             <div className="form-group">
               <label className="label">カテゴリ</label>
               <select className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                <option value="otetsudai">おてつだい</option>
-                <option value="obenkyo">おべんきょう</option>
-                <option value="seikatsu">せいかつ</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
               </select>
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>

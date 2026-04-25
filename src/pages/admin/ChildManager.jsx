@@ -4,20 +4,20 @@ import { QRCodeSVG } from 'qrcode.react';
 import { renderToString } from 'react-dom/server';
 import Header from '../../components/Header';
 import CropImageModal from '../../components/CropImageModal';
-import { getChildren, addChild, updateChild, deleteChild, adjustPoints, getTotalPoints } from '../../data/store';
+import { getChildren, addChild, updateChild, deleteChild, adjustPoints, getTotalPoints, getCategories, getEmojis } from '../../data/store';
 import { resizeImage } from '../../utils/image';
-
-const AVATARS = ['👧','👦','👶','🧒','👱','🐱','🐶','🐰','🦊','🐻','🐼','🦁'];
 
 export default function ChildManager() {
   const navigate = useNavigate();
+  const categories = getCategories();
+  const emojis = getEmojis();
   const [children, setChildren] = useState(getChildren());
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', avatar: '👧', avatarImage: null, headerImage: null });
   const [qrModal, setQrModal] = useState(null);
   const [adjustModal, setAdjustModal] = useState(null);
-  const [adjustForm, setAdjustForm] = useState({ category: 'otetsudai', amount: 0 });
+  const [adjustForm, setAdjustForm] = useState({ category: categories[0]?.id || '', amount: 0 });
   const [cropConfig, setCropConfig] = useState(null);
 
   const refresh = () => setChildren([...getChildren()]);
@@ -300,7 +300,7 @@ export default function ChildManager() {
               ) : (
                 <>
                   <div className="emoji-grid" style={{ marginBottom: 12 }}>
-                    {AVATARS.map((a) => (
+                    {emojis.slice(0, 20).map((a) => (
                       <button key={a} className={`emoji-option ${form.avatar === a ? 'selected' : ''}`} onClick={() => setForm({ ...form, avatar: a })}>
                         {a}
                       </button>
@@ -348,8 +348,9 @@ export default function ChildManager() {
             <div className="form-group">
               <label className="label">カテゴリ</label>
               <select className="input" value={adjustForm.category} onChange={(e) => setAdjustForm({ ...adjustForm, category: e.target.value })}>
-                <option value="otetsudai">🧹 おてつだい</option>
-                <option value="obenkyo">📚 おべんきょう</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>
+                ))}
               </select>
             </div>
             <div className="form-group">

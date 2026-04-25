@@ -10,6 +10,8 @@ import TaskManager from './pages/admin/TaskManager';
 import RewardManager from './pages/admin/RewardManager';
 import HistoryView from './pages/admin/HistoryView';
 import Settings from './pages/admin/Settings';
+import CategoryManager from './pages/admin/CategoryManager';
+import EmojiManager from './pages/admin/EmojiManager';
 
 export default function App() {
   return (
@@ -26,6 +28,8 @@ export default function App() {
         <Route path="/admin/rewards" element={<RewardManager />} />
         <Route path="/admin/history" element={<HistoryView />} />
         <Route path="/admin/settings" element={<Settings />} />
+        <Route path="/admin/categories" element={<CategoryManager />} />
+        <Route path="/admin/emojis" element={<EmojiManager />} />
       </Routes>
     </HashRouter>
   );

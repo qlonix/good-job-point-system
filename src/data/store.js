@@ -204,8 +204,37 @@ export async function resetData() {
 
 export async function resetAllPoints() {
   await fetchApi('/points/resetAll', { method: 'POST' });
+  const cats = getCategories();
   localData.children.forEach(child => {
-    child.points = { otetsudai: 0, obenkyo: 0, seikatsu: 0 };
+    const p = {};
+    cats.forEach(c => p[c.id] = 0);
+    child.points = p;
     child.history = [];
   });
 }
+
+// ---------- Dynamic Categories & Emojis ----------
+
+export function getCategories() {
+  return localData.categories || [];
+}
+
+export async function saveCategories(categories) {
+  await fetchApi('/categories', { method: 'POST', body: JSON.stringify(categories) });
+  localData.categories = categories;
+}
+
+export function getEmojis() {
+  return localData.emojis || [];
+}
+
+export async function saveEmojis(emojis) {
+  await fetchApi('/emojis', { method: 'POST', body: JSON.stringify(emojis) });
+  localData.emojis = emojis;
+}
+
+export async function reorderTasks(newTasks) {
+  await fetchApi('/tasks/reorder', { method: 'POST', body: JSON.stringify(newTasks) });
+  localData.tasks = newTasks;
+}
+
