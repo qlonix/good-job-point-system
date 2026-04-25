@@ -205,7 +205,7 @@ export async function resetData() {
 export async function resetAllPoints() {
   await fetchApi('/points/resetAll', { method: 'POST' });
   localData.children.forEach(child => {
-    child.points = { otetsudai: 0, obenkyo: 0 };
+    child.points = { otetsudai: 0, obenkyo: 0, seikatsu: 0 };
     child.history = [];
   });
 }

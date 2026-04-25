@@ -25,10 +25,11 @@ export default function ChildDashboard() {
   const total = getTotalPoints(child);
 
   const ACTIONS = [
-    { key: 'shukudai', emoji: '📝', label: 'しゅくだいをした', color: 'var(--blue)', gradient: 'linear-gradient(135deg, var(--blue), #4fa8e0)' },
-    { key: 'okataduke', emoji: '🧹', label: 'おかたづけをした', color: 'var(--mint)', gradient: 'linear-gradient(135deg, var(--mint), #3db87a)' },
-    { key: 'otetsudai', emoji: '🍽️', label: 'おてつだいをした', color: 'var(--purple)', gradient: 'linear-gradient(135deg, var(--purple), #9b7af7)' },
-    { key: 'reward', emoji: '🎁', label: 'ポイントをつかう', color: 'var(--yellow)', gradient: 'linear-gradient(135deg, var(--yellow), var(--orange))' },
+    { key: 'shukudai', emoji: '📝', label: <span><ruby>宿題<rt>しゅくだい</rt></ruby></span>, color: 'var(--blue)', gradient: 'linear-gradient(135deg, var(--blue), #4fa8e0)' },
+    { key: 'okataduke', emoji: '🧹', label: <span><ruby>片付<rt>かたづ</rt></ruby>け</span>, color: 'var(--mint)', gradient: 'linear-gradient(135deg, var(--mint), #3db87a)' },
+    { key: 'seikatsu', emoji: '🏠', label: 'せいかつ', color: 'var(--orange)', gradient: 'linear-gradient(135deg, #ff9a9e, #fecfef)' },
+    { key: 'otetsudai', emoji: '🍽️', label: 'おてつだい', color: 'var(--purple)', gradient: 'linear-gradient(135deg, var(--purple), #9b7af7)' },
+    { key: 'reward', emoji: '🎁', label: <span><ruby>使<rt>つか</rt></ruby>う</span>, color: 'var(--yellow)', gradient: 'linear-gradient(135deg, var(--yellow), var(--orange))' },
   ];
 
   const handleAction = (action) => {
@@ -41,7 +42,7 @@ export default function ChildDashboard() {
       navigate(`/child/${id}/rewards`);
     } else {
       // Find matching tasks and navigate to selection
-      const categoryMap = { shukudai: 'obenkyo', okataduke: 'otetsudai', otetsudai: 'otetsudai' };
+      const categoryMap = { shukudai: 'obenkyo', okataduke: 'otetsudai', otetsudai: 'otetsudai', seikatsu: 'seikatsu' };
       navigate(`/child/${id}/tasks/${categoryMap[action.key]}`);
     }
   };
@@ -71,7 +72,7 @@ export default function ChildDashboard() {
         <h1 className="dashboard-name">{child.name}</h1>
 
         <div className="card" style={{ marginTop: 20 }}>
-          <div className="point-label">もっているポイント</div>
+          <div className="point-label"><ruby>持<rt>も</rt></ruby>っているポイント</div>
           <div className="point-total">{total}</div>
           <div className="point-label">ポイント</div>
 
@@ -83,6 +84,10 @@ export default function ChildDashboard() {
             <div className="point-cat obenkyo">
               <div className="point-cat-value">{child.points.obenkyo || 0}</div>
               <div className="point-cat-label">📚 おべんきょう</div>
+            </div>
+            <div className="point-cat seikatsu" style={{ borderLeft: '1px solid #eee' }}>
+              <div className="point-cat-value">{child.points.seikatsu || 0}</div>
+              <div className="point-cat-label">🏠 せいかつ</div>
             </div>
           </div>
         </div>

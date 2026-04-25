@@ -17,20 +17,20 @@ function generateId() {
 $defaultData = [
     'children' => [],
     'tasks' => [
-        ['id' => 't1', 'name' => '食器を片付ける', 'emoji' => '🍽️', 'points' => 10, 'category' => 'otetsudai'],
-        ['id' => 't2', 'name' => '部屋を掃除する', 'emoji' => '🧹', 'points' => 15, 'category' => 'otetsudai'],
-        ['id' => 't3', 'name' => '洗濯物をたたむ', 'emoji' => '👕', 'points' => 10, 'category' => 'otetsudai'],
-        ['id' => 't4', 'name' => 'ペットの世話をする', 'emoji' => '🐕', 'points' => 10, 'category' => 'otetsudai'],
-        ['id' => 't5', 'name' => 'ゴミを出す', 'emoji' => '🗑️', 'points' => 5, 'category' => 'otetsudai'],
-        ['id' => 't8', 'name' => '宿題をやる', 'emoji' => '📝', 'points' => 15, 'category' => 'obenkyo'],
-        ['id' => 't9', 'name' => '本を読む', 'emoji' => '📖', 'points' => 10, 'category' => 'obenkyo'],
-        ['id' => 't10', 'name' => '漢字の練習', 'emoji' => '✍️', 'points' => 10, 'category' => 'obenkyo'],
+        ['id' => 't1', 'name' => '食器(しょっき)を片(かた)付(つ)ける', 'emoji' => '🍽️', 'points' => 10, 'category' => 'seikatsu'],
+        ['id' => 't2', 'name' => '部屋(へや)を掃除(そうじ)する', 'emoji' => '🧹', 'points' => 15, 'category' => 'otetsudai'],
+        ['id' => 't3', 'name' => '洗濯物(せんたくもの)をたたむ', 'emoji' => '👕', 'points' => 10, 'category' => 'otetsudai'],
+        ['id' => 't4', 'name' => 'ペットの世話(せわ)をする', 'emoji' => '🐕', 'points' => 10, 'category' => 'otetsudai'],
+        ['id' => 't5', 'name' => 'ゴミを出(だ)す', 'emoji' => '🗑️', 'points' => 5, 'category' => 'seikatsu'],
+        ['id' => 't8', 'name' => '宿題(しゅくだい)をやる', 'emoji' => '📝', 'points' => 15, 'category' => 'obenkyo'],
+        ['id' => 't9', 'name' => '本(ほん)を読(よ)む', 'emoji' => '📖', 'points' => 10, 'category' => 'obenkyo'],
+        ['id' => 't10', 'name' => '漢字(かんじ)の練習(れんしゅう)', 'emoji' => '✍️', 'points' => 10, 'category' => 'obenkyo'],
     ],
     'rewards' => [
-        ['id' => 'r1', 'name' => 'シール1枚', 'emoji' => '⭐', 'cost' => 20],
+        ['id' => 'r1', 'name' => 'シール1枚(まい)', 'emoji' => '⭐', 'cost' => 20],
         ['id' => 'r2', 'name' => 'おやつ', 'emoji' => '🍪', 'cost' => 30],
-        ['id' => 'r3', 'name' => 'ゲーム15分', 'emoji' => '🎮', 'cost' => 50],
-        ['id' => 'r4', 'name' => 'おこづかい100円', 'emoji' => '💰', 'cost' => 100],
+        ['id' => 'r3', 'name' => 'ゲーム15分(ふん)', 'emoji' => '🎮', 'cost' => 50],
+        ['id' => 'r4', 'name' => 'おこづかい100円(えん)', 'emoji' => '💰', 'cost' => 100],
     ],
     'pin' => '0000'
 ];
@@ -72,7 +72,7 @@ if ($route === 'children' && $method === 'POST') {
         'id' => generateId(),
         'name' => $body['name'],
         'avatar' => $body['avatar'] ?? '👧',
-        'points' => ['otetsudai' => 0, 'obenkyo' => 0],
+        'points' => ['otetsudai' => 0, 'obenkyo' => 0, 'seikatsu' => 0],
         'history' => []
     ];
     $data['children'][] = $child;
@@ -201,7 +201,7 @@ if (preg_match('/^children\/([^\/]+)\/points\/adjust$/', $route, $matches) && $m
 
 if ($route === 'points/resetAll' && $method === 'POST') {
     foreach ($data['children'] as &$child) {
-        $child['points'] = ['otetsudai' => 0, 'obenkyo' => 0];
+        $child['points'] = ['otetsudai' => 0, 'obenkyo' => 0, 'seikatsu' => 0];
         $child['history'] = [];
     }
     save();

@@ -45,6 +45,7 @@ export default function TaskManager() {
       <div className="tabs">
         <button className={`tab ${tab === 'otetsudai' ? 'active' : ''}`} onClick={() => setTab('otetsudai')}>🧹 おてつだい</button>
         <button className={`tab ${tab === 'obenkyo' ? 'active' : ''}`} onClick={() => setTab('obenkyo')}>📚 おべんきょう</button>
+        <button className={`tab ${tab === 'seikatsu' ? 'active' : ''}`} onClick={() => setTab('seikatsu')}>🏠 せいかつ</button>
       </div>
 
       <button className="btn btn-admin btn-full" onClick={openAdd}>+ タスクを追加</button>
@@ -93,6 +94,7 @@ export default function TaskManager() {
               <select className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
                 <option value="otetsudai">おてつだい</option>
                 <option value="obenkyo">おべんきょう</option>
+                <option value="seikatsu">せいかつ</option>
               </select>
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>

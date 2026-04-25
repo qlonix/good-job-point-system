@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Header from '../components/Header';
 import Confetti from '../components/Confetti';
 import { getRewards, spendPoints, getChildById, getTotalPoints } from '../data/store';
+import { renderRuby } from '../utils/format';
 
 export default function RewardExchange() {
   const { id } = useParams();
@@ -55,7 +56,7 @@ export default function RewardExchange() {
               onClick={() => canAfford && handleReward(r.id)}
             >
               <span className="task-emoji">{r.emoji}</span>
-              <span className="task-name">{r.name}</span>
+              <span className="task-name">{renderRuby(r.name)}</span>
               <span className="task-points">{r.cost} pt</span>
               {!canAfford && (
                 <span className="reward-shortage">あと {r.cost - total} pt</span>
@@ -70,7 +71,7 @@ export default function RewardExchange() {
           <Confetti count={60} />
           <div className="success-overlay" onClick={() => { setSuccess(null); navigate(`/child/${id}`); }}>
             <div className="success-emoji">{success.emoji}</div>
-            <div className="success-text">{success.name} ゲット！</div>
+            <div className="success-text">{renderRuby(success.name)} <ruby>獲得<rt>かくとく</rt></ruby>！</div>
             <div className="success-points">−{success.cost} ポイント</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-light)' }}>
               おめでとう！🎉

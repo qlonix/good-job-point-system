@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { getPin } from '../data/store';
+import { renderRuby } from '../utils/format';
 
 const IS_WEBKIT = 'WebkitTextSecurity' in document.documentElement.style;
 
@@ -57,9 +58,9 @@ export default function ApprovalModal({ actionLabel, actionEmoji, childName, onA
     <div className="modal-overlay" onClick={onCancel}>
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
         <div style={{ fontSize: '3rem', marginBottom: 8 }}>🔓</div>
-        <h2 style={{ marginBottom: 4 }}>おやのかくにん</h2>
+        <h2 style={{ marginBottom: 4 }}><ruby>親<rt>おや</rt></ruby>の<ruby>確認<rt>かくにん</rt></ruby></h2>
         <p style={{ color: 'var(--text-light)', fontSize: '0.9rem', marginBottom: 16 }}>
-          <strong>{childName}</strong> が 「{actionEmoji} {actionLabel}」
+          <strong>{childName}</strong> が 「{actionEmoji} {renderRuby(actionLabel)}」
         </p>
 
         {mode === 'select' && (
