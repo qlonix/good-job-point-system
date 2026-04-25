@@ -71,7 +71,7 @@ export default function ChildManager() {
   };
 
   const generateCardHtml = (child) => {
-    const childUrl = `${window.location.origin}/child/${child.id}`;
+    const childUrl = `${window.location.origin}${window.location.pathname}#/child/${child.id}`;
     const svgHtml = renderToString(<QRCodeSVG value={childUrl} size={220} level="M" />);
     
     // Header image or fallback pattern
@@ -133,7 +133,7 @@ export default function ChildManager() {
         }
         .card-header {
           width: 100%;
-          height: 30mm;
+          height: 36mm;
           background-color: #ff8fab;
         }
         .card-body {
@@ -238,7 +238,7 @@ export default function ChildManager() {
               {qrModal.name} のQRコード
             </h2>
             <div style={{ margin: '20px auto', padding: 16, background: '#fff', borderRadius: 12, display: 'inline-block' }}>
-              <QRCodeSVG value={`${window.location.origin}/child/${qrModal.id}`} size={220} level="M" />
+              <QRCodeSVG value={`${window.location.origin}${window.location.pathname}#/child/${qrModal.id}`} size={220} level="M" />
             </div>
             <div style={{ marginBottom: 16 }}>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginBottom: 4 }}>
@@ -248,7 +248,7 @@ export default function ChildManager() {
                 type="text" 
                 className="input" 
                 readOnly 
-                value={`${window.location.origin}/child/${qrModal.id}`} 
+                value={`${window.location.origin}${window.location.pathname}#/child/${qrModal.id}`} 
                 style={{ fontSize: '0.8rem', textAlign: 'center', backgroundColor: '#f0f0f0' }} 
               />
             </div>
@@ -316,7 +316,7 @@ export default function ChildManager() {
                 <div style={{ textAlign: 'center', padding: '12px', border: '2px dashed #ccc', borderRadius: 8 }}>
                   <label style={{ cursor: 'pointer', color: 'var(--text-light)', fontSize: '0.9rem' }}>
                     🌄 背景画像を選択
-                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleImageUpload(e, 'headerImage', 1.8, 600)} />
+                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleImageUpload(e, 'headerImage', 1.5, 600)} />
                   </label>
                 </div>
               )}

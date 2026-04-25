@@ -50,10 +50,20 @@ export default function ChildDashboard() {
     <div className="page">
       <Header title="がんばったねポイント" showBack />
 
-      <div className="text-center" style={{ marginTop: 8 }}>
-        <div className="dashboard-avatar">
+      {child.headerImage && (
+        <div style={{
+          margin: '0 -16px',
+          height: '140px',
+          backgroundImage: `url('${child.headerImage}')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}></div>
+      )}
+
+      <div className="text-center" style={{ marginTop: child.headerImage ? '-50px' : 8, position: 'relative', zIndex: 2 }}>
+        <div className="dashboard-avatar" style={child.headerImage ? { border: '4px solid white', background: 'white' } : {}}>
           {child.avatarImage ? (
-            <img src={child.avatarImage} alt="avatar" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '3px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+            <img src={child.avatarImage} alt="avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
           ) : (
             <span className="emoji-xl">{child.avatar}</span>
           )}
