@@ -1,16 +1,45 @@
-# React + Vite
+# 🌟 がんばったねポイントシステム (Good Job Point System)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+「がんばったねポイントシステム」は、子どもが「おてつだい」や「おべんきょう」を通じて楽しくポイントを貯め、景品と交換できるWebアプリケーションです。QRコードを用いて子どもを識別し、ポイントの付与や利用には親のパスコードまたは生体認証（顔認証・指紋認証など）での承認を必須とする、安心かつ親しみやすい設計になっています。
 
-Currently, two official plugins are available:
+## ✨ 主な機能
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+* **📱 QRコードによる簡単ログイン**: 子どもごとの専用QRコード（クレジットカードサイズで印刷可能！）をカメラで読み取るだけで、自分のポイント画面にアクセスできます。
+* **🛡️ 親の安心承認システム**: ポイントの獲得（おてつだい・おべんきょう）や利用（景品交換）の際には、親の承認（PINコードまたはWebAuthnによる生体認証）が必要です。子どもが勝手にポイントを操作することを防ぎます。
+* **🎁 楽しいごほうび交換**: 貯めたポイントは、事前に設定した「おやつ」や「ゲームの時間」などの景品と交換可能。交換時には画面いっぱいの紙吹雪アニメーションで達成感を演出します。
+* **🛠️ 充実した管理画面**: 親向けの管理画面（PIN保護）から、子どもの追加・QRコード発行・印刷、タスク（お手伝い内容）の編集、景品の設定、ポイント履歴の確認が簡単に行えます。
+* **☁️ サーバーレス動作**: データはブラウザの `localStorage` に保存されるため、バックエンドサーバーやデータベースの構築は不要ですぐに使い始められます。
 
-## React Compiler
+## 🚀 使い方 (ローカル環境での実行)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 前提条件
+* Node.js (v18以降を推奨)
+* npm または yarn
 
-## Expanding the ESLint configuration
+### インストールと起動
+```bash
+# リポジトリのクローン
+git clone https://github.com/qlonix/good-job-point-system.git
+cd good-job-point-system
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+# 依存関係のインストール
+npm install
+
+# 開発サーバーの起動
+npm run dev -- --host
+```
+
+起動後、スマートフォンやPCのブラウザから表示されたURLにアクセスしてください。（スマートフォンのカメラを使用するため、PCと同じWi-Fiに接続しIPアドレス経由でアクセスすることをおすすめします）
+
+※初期状態の管理画面用PINコードは `0000` です。
+
+## 🛠 技術スタック
+* **Frontend**: React 19, Vite, React Router
+* **Styling**: Vanilla CSS (パステルカラーで親しみやすいカスタムデザイン)
+* **QR Reader**: html5-qrcode, qrcode.react
+* **Storage**: localStorage API (データ永続化)
+* **Auth**: WebAuthn API (デバイスの生体認証)
+
+## 📄 ライセンス
+
+本プロジェクトは [MIT ライセンス](LICENSE) のもとで公開されています。ご家庭での利用はもちろん、自由に改変や再配布が可能です。
