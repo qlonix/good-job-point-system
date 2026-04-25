@@ -8,7 +8,7 @@ export default function HistoryView() {
   const [typeFilter, setTypeFilter] = useState('all');
 
   const allHistory = children.flatMap((c) =>
-    (c.history || []).map((h) => ({ ...h, childName: c.name, childAvatar: c.avatar, childId: c.id }))
+    (c.history || []).map((h) => ({ ...h, childName: c.name, childAvatar: c.avatar, childAvatarImage: c.avatarImage, childId: c.id }))
   ).sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const filtered = allHistory
@@ -45,7 +45,14 @@ export default function HistoryView() {
           <div key={h.id} className="history-item">
             <span className="h-emoji">{h.taskEmoji}</span>
             <div className="h-info">
-              <div className="h-name">{h.childAvatar} {h.childName} — {h.taskName}</div>
+              <div className="h-name">
+                {h.childAvatarImage ? (
+                  <img src={h.childAvatarImage} alt="avatar" style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'cover', verticalAlign: 'middle', marginRight: 4 }} />
+                ) : (
+                  h.childAvatar + ' '
+                )}
+                {h.childName} — {h.taskName}
+              </div>
               <div className="h-date">{formatDate(h.date)}</div>
             </div>
             <div className={`h-points ${h.type}`}>

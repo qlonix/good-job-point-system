@@ -112,7 +112,12 @@ export default function HomePage() {
                   className="btn btn-outline btn-full"
                   onClick={() => navigate(`/child/${c.id}`)}
                 >
-                  {c.avatar} {c.name}
+                  {c.avatarImage ? (
+                    <img src={c.avatarImage} alt="avatar" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', verticalAlign: 'middle', marginRight: 8 }} />
+                  ) : (
+                    c.avatar + ' '
+                  )}
+                  {c.name}
                 </button>
               ))}
             </div>

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
+import { renderToString } from 'react-dom/server';
 import Header from '../../components/Header';
 import { getChildren, addChild, updateChild, deleteChild, adjustPoints, getTotalPoints } from '../../data/store';
+import { resizeImage } from '../../utils/image';
 
 const AVATARS = ['👧','👦','👶','🧒','👱','🐱','🐶','🐰','🦊','🐻','🐼','🦁'];
 
@@ -11,7 +13,7 @@ export default function ChildManager() {
   const [children, setChildren] = useState(getChildren());
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', avatar: '👧' });
+  const [form, setForm] = useState({ name: '', avatar: '👧', avatarImage: null, headerImage: null });
   const [qrModal, setQrModal] = useState(null);
   const [adjustModal, setAdjustModal] = useState(null);
   const [adjustForm, setAdjustForm] = useState({ category: 'otetsudai', amount: 0 });
@@ -20,13 +22,13 @@ export default function ChildManager() {
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ name: '', avatar: '👧' });
+    setForm({ name: '', avatar: '👧', avatarImage: null, headerImage: null });
     setShowModal(true);
   };
 
   const openEdit = (c) => {
     setEditing(c);
-    setForm({ name: c.name, avatar: c.avatar });
+    setForm({ name: c.name, avatar: c.avatar, avatarImage: c.avatarImage || null, headerImage: c.headerImage || null });
     setShowModal(true);
   };
 
@@ -55,28 +57,65 @@ export default function ChildManager() {
     refresh();
   };
 
-  const printQr = (child) => {
-    // get SVG from modal
-    const svgElement = document.querySelector('.modal svg');
-    const svgHtml = svgElement ? svgElement.outerHTML : '';
+  const handleImageUpload = async (e, field, maxSize) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const base64 = await resizeImage(file, maxSize);
+      setForm(prev => ({ ...prev, [field]: base64 }));
+    } catch (err) {
+      alert('画像の読み込みに失敗しました');
+    }
+  };
 
+  const generateCardHtml = (child) => {
+    const svgHtml = renderToString(<QRCodeSVG value={`otetsudai:${child.id}`} size={220} level="M" />);
+    
+    // Header image or fallback pattern
+    const headerStyle = child.headerImage 
+      ? `background-image: url('${child.headerImage}'); background-size: cover; background-position: center;`
+      : `background: #ff8fab;`; // default solid color
+
+    // Avatar image or emoji
+    const avatarHtml = child.avatarImage 
+      ? `<img src="${child.avatarImage}" class="avatar-img" />`
+      : `<div class="emoji">${child.avatar}</div>`;
+
+    return `
+      <div class="card">
+        <div class="card-header" style="${headerStyle}"></div>
+        <div class="card-body">
+          <div class="avatar-container">${avatarHtml}</div>
+          <div class="name">${child.name}</div>
+          <div class="qr-container">${svgHtml}</div>
+          <div class="footer">カードをかざしてね！</div>
+        </div>
+      </div>
+    `;
+  };
+
+  const executePrint = (cardsHtml) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
     printWindow.document.write(`
       <!DOCTYPE html><html><head><meta charset="utf-8">
-      <title>${child.name}のQRコード</title>
+      <title>がんばったねポイントカード</title>
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap');
-        @page { size: A4 portrait; margin: 20mm; }
+        @page { size: A4 portrait; margin: 15mm; }
         body { 
           font-family: 'Nunito', sans-serif; 
           margin: 0; 
           background: white; 
+          display: flex;
+          flex-wrap: wrap;
+          gap: 15mm;
+          justify-content: flex-start;
+          align-content: flex-start;
         }
         .card { 
           background: #fffafb; 
           border-radius: 4mm; 
-          padding: 5mm; 
           box-sizing: border-box;
           text-align: center; 
           width: 54mm; 
@@ -84,26 +123,46 @@ export default function ChildManager() {
           border: 1.5px dashed #ff8fab; /* 切り取り線 */
           display: flex;
           flex-direction: column;
-          align-items: center;
-          justify-content: space-between;
+          overflow: hidden;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
+          position: relative;
         }
-        h1 { font-size: 9pt; color: #ff8fab; margin: 0; line-height: 1.2; }
-        .emoji { font-size: 24pt; margin: 0; line-height: 1; }
-        .name { font-size: 12pt; margin: 0; color: #4a3548; font-weight: 900; }
-        .qr-container { display: flex; justify-content: center; align-items: center; background: white; padding: 2mm; border-radius: 2mm; }
-        .qr-container svg { width: 34mm; height: 34mm; display: block; }
-        .footer { font-size: 7pt; color: #8a7088; font-weight: 700; margin: 0; }
+        .card-header {
+          width: 100%;
+          height: 30mm;
+          background-color: #ff8fab;
+        }
+        .card-body {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 0 4mm;
+        }
+        .avatar-container {
+          width: 20mm;
+          height: 20mm;
+          border-radius: 50%;
+          background: white;
+          border: 2px solid white;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          margin-top: -12mm;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          overflow: hidden;
+          z-index: 2;
+        }
+        .avatar-img { width: 100%; height: 100%; object-fit: cover; }
+        .emoji { font-size: 14pt; margin: 0; line-height: 1; }
+        .name { font-size: 11pt; margin: 3mm 0; color: #4a3548; font-weight: 900; }
+        .qr-container { display: flex; justify-content: center; align-items: center; background: white; padding: 2mm; border-radius: 2mm; margin-top: auto; }
+        .qr-container svg { width: 28mm; height: 28mm; display: block; }
+        .footer { font-size: 6pt; color: #8a7088; font-weight: 700; margin: 2mm 0; }
       </style>
       </head><body>
-      <div class="card">
-        <h1>⭐ がんばったねポイント</h1>
-        <div class="emoji">${child.avatar}</div>
-        <div class="name">${child.name}</div>
-        <div class="qr-container">${svgHtml}</div>
-        <div class="footer">カードをかざしてね！</div>
-      </div>
+      ${cardsHtml}
       <script>
         setTimeout(function(){ window.print(); }, 500);
       <\/script>
@@ -112,11 +171,26 @@ export default function ChildManager() {
     printWindow.document.close();
   };
 
+  const printQr = (child) => {
+    executePrint(generateCardHtml(child));
+  };
+
+  const printAllQr = () => {
+    if (children.length === 0) return;
+    const cardsHtml = children.map(generateCardHtml).join('');
+    executePrint(cardsHtml);
+  };
+
   return (
     <div className="page admin-page">
       <Header title="👧 子ども管理" showBack />
 
-      <button className="btn btn-admin btn-full" onClick={openAdd}>+ 子どもを追加</button>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <button className="btn btn-admin" style={{ flex: 1 }} onClick={openAdd}>+ 子どもを追加</button>
+        {children.length > 0 && (
+          <button className="btn btn-outline" style={{ flex: 1 }} onClick={printAllQr}>🖨 全員分を印刷</button>
+        )}
+      </div>
 
       <div className="admin-list">
         {children.length === 0 && (
@@ -127,7 +201,13 @@ export default function ChildManager() {
         )}
         {children.map((c) => (
           <div key={c.id} className="admin-list-item">
-            <span className="item-emoji">{c.avatar}</span>
+            <span className="item-emoji">
+              {c.avatarImage ? (
+                <img src={c.avatarImage} alt="avatar" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+              ) : (
+                c.avatar
+              )}
+            </span>
             <div className="item-info">
               <div className="item-name">{c.name}</div>
               <div className="item-sub">合計 {getTotalPoints(c)} pt</div>
@@ -146,7 +226,14 @@ export default function ChildManager() {
       {qrModal && (
         <div className="modal-overlay" onClick={() => setQrModal(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
-            <h2>{qrModal.avatar} {qrModal.name} のQRコード</h2>
+            <h2>
+              {qrModal.avatarImage ? (
+                <img src={qrModal.avatarImage} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', verticalAlign: 'middle', marginRight: 8 }} />
+              ) : (
+                qrModal.avatar + ' '
+              )}
+              {qrModal.name} のQRコード
+            </h2>
             <div style={{ margin: '20px auto', padding: 16, background: '#fff', borderRadius: 12, display: 'inline-block' }}>
               <QRCodeSVG value={`otetsudai:${qrModal.id}`} size={220} level="M" />
             </div>
@@ -175,14 +262,49 @@ export default function ChildManager() {
               <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="なまえ" />
             </div>
             <div className="form-group">
-              <label className="label">アバター</label>
-              <div className="emoji-grid">
-                {AVATARS.map((a) => (
-                  <button key={a} className={`emoji-option ${form.avatar === a ? 'selected' : ''}`} onClick={() => setForm({ ...form, avatar: a })}>
-                    {a}
-                  </button>
-                ))}
-              </div>
+              <label className="label">アバター（絵文字 または 画像）</label>
+              
+              {form.avatarImage ? (
+                <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                  <img src={form.avatarImage} alt="avatar preview" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--pink-main)' }} />
+                  <div style={{ marginTop: 8 }}>
+                    <button className="btn btn-sm btn-outline" onClick={() => setForm(p => ({ ...p, avatarImage: null }))}>画像を削除</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="emoji-grid" style={{ marginBottom: 12 }}>
+                    {AVATARS.map((a) => (
+                      <button key={a} className={`emoji-option ${form.avatar === a ? 'selected' : ''}`} onClick={() => setForm({ ...form, avatar: a })}>
+                        {a}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <label className="btn btn-sm btn-outline" style={{ display: 'inline-block', cursor: 'pointer' }}>
+                      📷 好きな画像をアップロード
+                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleImageUpload(e, 'avatarImage', 200)} />
+                    </label>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="form-group" style={{ marginTop: 16 }}>
+              <label className="label">カード用ヘッダー画像 (任意)</label>
+              {form.headerImage ? (
+                <div style={{ textAlign: 'center' }}>
+                  <img src={form.headerImage} alt="header preview" style={{ width: '100%', height: 60, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
+                  <button className="btn btn-sm btn-outline" onClick={() => setForm(p => ({ ...p, headerImage: null }))}>画像を削除</button>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '12px', border: '2px dashed #ccc', borderRadius: 8 }}>
+                  <label style={{ cursor: 'pointer', color: 'var(--text-light)', fontSize: '0.9rem' }}>
+                    🌄 背景画像を選択
+                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleImageUpload(e, 'headerImage', 600)} />
+                  </label>
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
               <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setShowModal(false)}>キャンセル</button>

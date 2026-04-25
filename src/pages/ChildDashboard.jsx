@@ -52,7 +52,11 @@ export default function ChildDashboard() {
 
       <div className="text-center" style={{ marginTop: 8 }}>
         <div className="dashboard-avatar">
-          <span className="emoji-xl">{child.avatar}</span>
+          {child.avatarImage ? (
+            <img src={child.avatarImage} alt="avatar" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '3px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+          ) : (
+            <span className="emoji-xl">{child.avatar}</span>
+          )}
         </div>
         <h1 className="dashboard-name">{child.name}</h1>
 
