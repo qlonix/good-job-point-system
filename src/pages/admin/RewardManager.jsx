@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Header from '../../components/Header';
 import { getRewards, addReward, updateReward, deleteReward } from '../../data/store';
 
-const EMOJIS = ['⭐','🍪','🎮','💰','🎡','🍦','📚','🎨','🧸','🎶','🏊','🎂','🍕','🎪','🎠','🌟','🍫','🎯','🎈','🎁'];
+const EMOJIS = ['⭐','🍪','🎮','📺','💰','🎡','🍦','📚','🎨','🧸','🎶','🏊','🎂','🍕','🎪','🎠','🌟','🍫','🎯','🎈','🎁'];
 
 export default function RewardManager() {
   const [rewards, setRewards] = useState(getRewards());
