@@ -17,7 +17,6 @@
 ### 前提条件
 * Node.js (v18以降を推奨)
 * npm または yarn
-* PHP (同期機能を使用する場合)
 
 ### インストールと起動
 ```bash
@@ -28,17 +27,17 @@ cd good-job-point-system
 # 依存関係のインストール
 npm install
 
-# 開発サーバーの起動
-npm run dev -- --host
+# 開発サーバーの起動 (フロントエンドとバックエンドの両方が起動します)
+npm run dev
 ```
 
-起動後、ブラウザから表示されたURLにアクセスしてください。管理画面の初期PINコードは `0000` です。
+起動後、ブラウザで **[http://localhost:5173](http://localhost:5173)** にアクセスしてください。管理画面の初期PINコードは `0000` です。
 
 ## 🛠 技術スタック
 * **Frontend**: React 19, Vite, React Router
+* **Backend**: Node.js, Express, SQLite (better-sqlite3)
 * **Styling**: Vanilla CSS (パステルカラーで親しみやすいプレミアムデザイン)
 * **QR Reader**: html5-qrcode, qrcode.react
-* **Storage/Sync**: PHP + JSON (データ永続化と同期)
 * **Auth**: WebAuthn API (デバイスの生体認証・パスキー)
 
 ## 📄 ライセンス
