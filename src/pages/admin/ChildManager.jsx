@@ -22,6 +22,7 @@ import Header from '../../components/Header';
 import CropImageModal from '../../components/CropImageModal';
 import { getChildren, addChild, updateChild, deleteChild, reorderChildren, adjustPoints, getTotalPoints, getCategories, getEmojis } from '../../data/store';
 import { resizeImage } from '../../utils/image';
+import { renderRuby } from '../../utils/format';
 
 function SortableChildItem({ child, navigate, setQrModal, openEdit, handleDelete, getTotalPoints }) {
   const {
