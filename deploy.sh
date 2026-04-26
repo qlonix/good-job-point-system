@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Load configuration
+if [ -f "deploy.config" ]; then
+    source deploy.config
+else
+    echo "Error: deploy.config not found."
+    echo "Please create deploy.config with DEPLOY_HOST, DEPLOY_USER, and DEPLOY_PATH."
+    exit 1
+fi
+
+echo "🚀 Building project..."
+npm run build
+
+if [ $? -ne 0 ]; then
+    echo "❌ Build failed. Aborting deployment."
+    exit 1
+fi
+
+echo "🧹 Cleaning up remote assets..."
+ssh ${DEPLOY_USER}@${DEPLOY_HOST} "rm -rf ~/${DEPLOY_PATH}assets"
+
+echo "📤 Uploading files to ${DEPLOY_HOST}:${DEPLOY_PATH}..."
+scp -r dist/. ${DEPLOY_USER}@${DEPLOY_HOST}:~/${DEPLOY_PATH}
+
+echo "✅ Deployment complete!"
