@@ -36,7 +36,7 @@ export function getChildren() {
 }
 
 export function getChildById(id) {
-  return localData.children.find((c) => c.id === id) || null;
+  return localData.children.find((c) => String(c.id) === String(id)) || null;
 }
 
 export async function addChild({ name, avatar }) {
@@ -61,6 +61,14 @@ export async function updateChild(id, updates) {
 export async function deleteChild(id) {
   await fetchApi(`/children/${id}`, { method: 'DELETE' });
   localData.children = localData.children.filter(c => c.id !== id);
+}
+
+export async function reorderChildren(newOrder) {
+  await fetchApi('/children/reorder', {
+    method: 'POST',
+    body: JSON.stringify(newOrder),
+  });
+  localData.children = newOrder;
 }
 
 // ---------- Points ----------
@@ -96,6 +104,16 @@ export async function adjustPoints(childId, category, amount) {
   const res = await fetchApi(`/children/${childId}/points/adjust`, {
     method: 'POST',
     body: JSON.stringify({ category, amount }),
+  });
+  const idx = localData.children.findIndex(c => c.id === childId);
+  if (idx !== -1) localData.children[idx] = res;
+  return res;
+}
+
+export async function addManualHistory(childId, { amount, category, taskName, taskEmoji, type }) {
+  const res = await fetchApi(`/children/${childId}/points/adjust`, {
+    method: 'POST',
+    body: JSON.stringify({ amount, category, taskName, taskEmoji, type }),
   });
   const idx = localData.children.findIndex(c => c.id === childId);
   if (idx !== -1) localData.children[idx] = res;
@@ -163,6 +181,11 @@ export async function deleteReward(id) {
   localData.rewards = localData.rewards.filter(r => r.id !== id);
 }
 
+export async function reorderRewards(newRewards) {
+  await fetchApi('/rewards/reorder', { method: 'POST', body: JSON.stringify(newRewards) });
+  localData.rewards = newRewards;
+}
+
 // ---------- PIN ----------
 
 export function getPin() {
@@ -224,17 +247,40 @@ export async function saveCategories(categories) {
   localData.categories = categories;
 }
 
-export function getEmojis() {
-  return localData.emojis || [];
+export function getEmojis(type = 'task') {
+  let key = 'task_emojis';
+  if (type === 'avatar') key = 'avatar_emojis';
+  if (type === 'reward') key = 'reward_emojis';
+  return localData[key] || [];
 }
 
-export async function saveEmojis(emojis) {
-  await fetchApi('/emojis', { method: 'POST', body: JSON.stringify(emojis) });
-  localData.emojis = emojis;
+export async function saveEmojis(emojis, type = 'task') {
+  await fetchApi(`/emojis?type=${type}`, { method: 'POST', body: JSON.stringify(emojis) });
+  let key = 'task_emojis';
+  if (type === 'avatar') key = 'avatar_emojis';
+  if (type === 'reward') key = 'reward_emojis';
+  localData[key] = emojis;
 }
 
 export async function reorderTasks(newTasks) {
   await fetchApi('/tasks/reorder', { method: 'POST', body: JSON.stringify(newTasks) });
   localData.tasks = newTasks;
+}
+
+export async function deleteHistoryItem(childId, historyId) {
+  const res = await fetchApi(`/children/${childId}/history/${historyId}`, { method: 'DELETE' });
+  const idx = localData.children.findIndex(c => c.id === childId);
+  if (idx !== -1) localData.children[idx] = res.child;
+  return res.child;
+}
+
+export async function updateHistoryItem(childId, historyId, updates) {
+  const res = await fetchApi(`/children/${childId}/history/${historyId}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates),
+  });
+  const idx = localData.children.findIndex(c => c.id === childId);
+  if (idx !== -1) localData.children[idx] = res.child;
+  return res.child;
 }
 

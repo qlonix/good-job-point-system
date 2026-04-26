@@ -2,25 +2,104 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { renderToString } from 'react-dom/server';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import Header from '../../components/Header';
 import CropImageModal from '../../components/CropImageModal';
-import { getChildren, addChild, updateChild, deleteChild, adjustPoints, getTotalPoints, getCategories, getEmojis } from '../../data/store';
+import { getChildren, addChild, updateChild, deleteChild, reorderChildren, adjustPoints, getTotalPoints, getCategories, getEmojis } from '../../data/store';
 import { resizeImage } from '../../utils/image';
+
+function SortableChildItem({ child, navigate, setQrModal, openEdit, handleDelete, getTotalPoints }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: child.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 100 : 1,
+    opacity: isDragging ? 0.6 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="admin-list-item">
+      <div className="item-main">
+        <div className="drag-handle" {...attributes} {...listeners}>⋮⋮</div>
+        <span className="item-emoji">
+          {child.avatarImage ? (
+            <img src={child.avatarImage} alt="avatar" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--pink-light)' }} />
+          ) : (
+            child.avatar
+          )}
+        </span>
+        <div className="item-info">
+          <div className="item-name">{renderRuby(child.name)}</div>
+          <div className="item-sub">合計 {getTotalPoints(child)} pt</div>
+        </div>
+      </div>
+      <div className="item-actions">
+        <button className="btn btn-sm btn-outline" onClick={() => setQrModal(child)} title="QRコード">📱</button>
+        <button className="btn btn-sm btn-outline" onClick={() => navigate(`/admin/history?childId=${child.id}`, { state: { backTo: '/admin/children' } })} title="ポイント履歴/調整">📊</button>
+        <button className="btn btn-sm btn-outline" onClick={() => openEdit(child)} title="編集">✏️</button>
+        <button className="btn btn-sm btn-danger" onClick={() => handleDelete(child.id)} title="削除">🗑</button>
+      </div>
+    </div>
+  );
+}
 
 export default function ChildManager() {
   const navigate = useNavigate();
   const categories = getCategories();
-  const emojis = getEmojis();
+  const emojis = getEmojis('avatar');
   const [children, setChildren] = useState(getChildren());
   const [showModal, setShowModal] = useState(false);
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const refresh = () => setChildren([...getChildren()]);
+
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    if (active.id !== over.id) {
+      const oldIndex = children.findIndex((c) => c.id === active.id);
+      const newIndex = children.findIndex((c) => c.id === over.id);
+      const newOrder = arrayMove(children, oldIndex, newIndex);
+      setChildren(newOrder);
+      await reorderChildren(newOrder);
+    }
+  };
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', avatar: '👧', avatarImage: null, headerImage: null });
   const [qrModal, setQrModal] = useState(null);
   const [adjustModal, setAdjustModal] = useState(null);
   const [adjustForm, setAdjustForm] = useState({ category: categories[0]?.id || '', amount: 0 });
   const [cropConfig, setCropConfig] = useState(null);
-
-  const refresh = () => setChildren([...getChildren()]);
 
   const openAdd = () => {
     setEditing(null);
@@ -77,7 +156,7 @@ export default function ChildManager() {
     // Header image or fallback pattern
     const headerStyle = child.headerImage 
       ? `background-image: url('${child.headerImage}'); background-size: cover; background-position: center;`
-      : `background: #ff8fab;`; // default solid color
+      : `background: linear-gradient(135deg, #ff8fab, #ffc2d4);`;
 
     // Avatar image or emoji
     const avatarHtml = child.avatarImage 
@@ -86,12 +165,15 @@ export default function ChildManager() {
 
     return `
       <div class="card">
+        <div class="card-title-bar">
+          <span class="star">★</span> がんばったねポイントカード <span class="star">★</span>
+        </div>
         <div class="card-header" style="${headerStyle}"></div>
         <div class="card-body">
           <div class="avatar-container">${avatarHtml}</div>
           <div class="name">${child.name}</div>
           <div class="qr-container">${svgHtml}</div>
-          <div class="footer">カードをかざしてね！</div>
+          <div class="footer">QRコードをよみとってね！</div>
         </div>
       </div>
     `;
@@ -104,37 +186,61 @@ export default function ChildManager() {
       <!DOCTYPE html><html><head><meta charset="utf-8">
       <title>がんばったねポイントカード</title>
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap');
-        @page { size: A4 portrait; margin: 15mm; }
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&family=M+PLUS+Rounded+1c:wght@700;900&display=swap');
+        @page { size: A4 landscape; margin: 0; }
         body { 
-          font-family: 'Nunito', sans-serif; 
-          margin: 0; 
+          font-family: 'M PLUS Rounded 1c', 'Nunito', sans-serif; 
+          margin: 0;
+          padding: 8mm;
           background: white; 
           display: flex;
           flex-wrap: wrap;
-          gap: 15mm;
+          gap: 6mm 10mm;
           justify-content: flex-start;
           align-content: flex-start;
         }
         .card { 
-          background: #fffafb; 
-          border-radius: 4mm; 
+          background: #ffeaef; 
+          border-radius: 3mm; 
           box-sizing: border-box;
           text-align: center; 
           width: 54mm; 
-          height: 86mm; /* クレジットカードサイズ (縦向き) */
-          border: 1.5px dashed #ff8fab; /* 切り取り線 */
+          height: 86mm; 
+          border: 1px solid #ffc2d4;
+          box-shadow: 0 1mm 3mm rgba(0,0,0,0.05);
           display: flex;
           flex-direction: column;
           overflow: hidden;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
           position: relative;
+          page-break-inside: avoid;
         }
+        .card-title-bar {
+          width: 100%;
+          height: 9mm;
+          background-color: #fff9fb;
+          border-bottom: 0.5mm solid #ffc2d4;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 6.5pt;
+          font-weight: 900;
+          color: #e05c82;
+          flex-shrink: 0;
+          position: relative;
+          z-index: 10;
+        }
+        .star { color: #ffb347; font-size: 6pt; margin: 0 1mm; }
         .card-header {
           width: 100%;
-          height: 36mm;
-          background-color: #ff8fab;
+          height: 25mm;
+          flex-shrink: 0;
+          display: block;
+          position: relative;
+          background-repeat: no-repeat;
+          background-size: cover;
+          background-position: top center;
         }
         .card-body {
           flex: 1;
@@ -142,32 +248,42 @@ export default function ChildManager() {
           flex-direction: column;
           align-items: center;
           padding: 0 4mm;
+          position: relative;
         }
         .avatar-container {
-          width: 20mm;
-          height: 20mm;
+          width: 16mm;
+          height: 16mm;
           border-radius: 50%;
           background: white;
-          border: 2px solid white;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-          margin-top: -12mm;
+          border: 1mm solid white;
+          box-shadow: 0 0.8mm 2mm rgba(0,0,0,0.1);
+          margin-top: -8mm;
           display: flex;
           justify-content: center;
           align-items: center;
           overflow: hidden;
-          z-index: 2;
+          z-index: 5;
         }
         .avatar-img { width: 100%; height: 100%; object-fit: cover; }
-        .emoji { font-size: 14pt; margin: 0; line-height: 1; }
-        .name { font-size: 11pt; margin: 3mm 0; color: #4a3548; font-weight: 900; }
-        .qr-container { display: flex; justify-content: center; align-items: center; background: white; padding: 2mm; border-radius: 2mm; margin-top: auto; }
-        .qr-container svg { width: 28mm; height: 28mm; display: block; }
-        .footer { font-size: 6pt; color: #8a7088; font-weight: 700; margin: 2mm 0; }
+        .emoji { font-size: 11pt; margin: 0; line-height: 1; }
+        .name { font-size: 11pt; margin: 1.5mm 0; color: #4a3548; font-weight: 900; }
+        .qr-container { 
+          display: flex; 
+          justify-content: center; 
+          align-items: center; 
+          background: white; 
+          padding: 1mm; 
+          border-radius: 2mm; 
+          margin-top: auto; 
+          border: 0.5mm solid #ffebf0;
+        }
+        .qr-container svg { width: 22mm; height: 22mm; display: block; }
+        .footer { font-size: 6pt; color: #ff8fab; font-weight: 900; margin: 1.5mm 0; }
       </style>
       </head><body>
       ${cardsHtml}
       <script>
-        setTimeout(function(){ window.print(); }, 500);
+        setTimeout(function(){ window.print(); }, 800);
       <\/script>
       </body></html>
     `);
@@ -188,10 +304,10 @@ export default function ChildManager() {
     <div className="page admin-page">
       <Header title="👧 子ども管理" showBack />
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        <button className="btn btn-admin" style={{ flex: 1 }} onClick={openAdd}>+ 子どもを追加</button>
+      <div className="admin-top-btns">
+        <button className="btn btn-admin" onClick={openAdd}>+ 子どもを追加</button>
         {children.length > 0 && (
-          <button className="btn btn-outline" style={{ flex: 1 }} onClick={printAllQr}>🖨 全員分を印刷</button>
+          <button className="btn btn-outline" onClick={printAllQr}>🖨 全員分を印刷</button>
         )}
       </div>
 
@@ -202,27 +318,28 @@ export default function ChildManager() {
             <p>まだ子どもが登録されていません</p>
           </div>
         )}
-        {children.map((c) => (
-          <div key={c.id} className="admin-list-item">
-            <span className="item-emoji">
-              {c.avatarImage ? (
-                <img src={c.avatarImage} alt="avatar" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
-              ) : (
-                c.avatar
-              )}
-            </span>
-            <div className="item-info">
-              <div className="item-name">{c.name}</div>
-              <div className="item-sub">合計 {getTotalPoints(c)} pt</div>
-            </div>
-            <div className="item-actions">
-              <button className="btn btn-sm btn-outline" onClick={() => setQrModal(c)} title="QRコード">📱</button>
-              <button className="btn btn-sm btn-outline" onClick={() => setAdjustModal(c)} title="ポイント調整">±</button>
-              <button className="btn btn-sm btn-outline" onClick={() => openEdit(c)} title="編集">✏️</button>
-              <button className="btn btn-sm btn-danger" onClick={() => handleDelete(c.id)} title="削除">🗑</button>
-            </div>
-          </div>
-        ))}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={children.map(c => c.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {children.map((c) => (
+              <SortableChildItem
+                key={c.id}
+                child={c}
+                navigate={navigate}
+                setQrModal={setQrModal}
+                openEdit={openEdit}
+                handleDelete={handleDelete}
+                getTotalPoints={getTotalPoints}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
       </div>
 
       {/* QR Code Modal */}
@@ -235,7 +352,7 @@ export default function ChildManager() {
               ) : (
                 qrModal.avatar + ' '
               )}
-              {qrModal.name} のQRコード
+              {renderRuby(qrModal.name)} のQRコード
             </h2>
             <div style={{ margin: '20px auto', padding: 16, background: '#fff', borderRadius: 12, display: 'inline-block' }}>
               <QRCodeSVG value={`${window.location.origin}${window.location.pathname}#/child/${qrModal.id}`} size={220} level="M" />
@@ -282,7 +399,7 @@ export default function ChildManager() {
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>{editing ? '子どもを編集' : '子どもを追加'}</h2>
+            <h2>{editing ? `${renderRuby(editing.name)} を編集` : '子どもを追加'}</h2>
             <div className="form-group">
               <label className="label">名前</label>
               <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="なまえ" />
@@ -317,7 +434,7 @@ export default function ChildManager() {
             </div>
 
             <div className="form-group" style={{ marginTop: 16 }}>
-              <label className="label">カード用ヘッダー画像 (任意)</label>
+              <label className="label">ヘッダー画像 (任意)</label>
               {form.headerImage ? (
                 <div style={{ textAlign: 'center' }}>
                   <img src={form.headerImage} alt="header preview" style={{ width: '100%', height: 60, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />

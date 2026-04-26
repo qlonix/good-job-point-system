@@ -1,30 +1,104 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import Header from '../../components/Header';
-import { getChildren } from '../../data/store';
+import { getChildren, deleteHistoryItem, updateHistoryItem, addManualHistory, getCategories } from '../../data/store';
+import { renderRuby } from '../../utils/format';
 
 export default function HistoryView() {
-  const children = getChildren();
-  const [selectedChild, setSelectedChild] = useState('all');
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const [children, setChildren] = useState(getChildren());
+  const [selectedChild, setSelectedChild] = useState(searchParams.get('childId') || 'all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [editingItem, setEditingItem] = useState(null); // { childId, historyId, points }
+  const [addingItem, setAddingItem] = useState(false);
+  const baseCategories = getCategories();
+  const manualCategories = [...baseCategories, { id: 'other', name: 'その他（カテゴリー集計外）' }];
+  const [addForm, setAddForm] = useState({
+    childId: children.length > 0 ? children[0].id : '',
+    type: 'earn',
+    points: 10,
+    taskName: '',
+    taskEmoji: '📝',
+    category: manualCategories.length > 0 ? manualCategories[0].id : 'seikatsu'
+  });
 
-  const allHistory = children.flatMap((c) =>
-    (c.history || []).map((h) => ({ ...h, childName: c.name, childAvatar: c.avatar, childAvatarImage: c.avatarImage, childId: c.id }))
-  ).sort((a, b) => new Date(b.date) - new Date(a.date));
+  // フィルタ状態をURLパラメータに同期 (任意だが使い勝手のため)
+  useEffect(() => {
+    const cid = searchParams.get('childId');
+    if (cid) setSelectedChild(cid);
+  }, [searchParams]);
 
-  const filtered = allHistory
-    .filter((h) => selectedChild === 'all' || h.childId === selectedChild)
-    .filter((h) => typeFilter === 'all' || h.type === typeFilter);
+  const allHistory = useMemo(() => 
+    children.flatMap((c) =>
+      (Array.isArray(c.history) ? c.history : []).map((h) => ({ ...h, childName: c.name, childAvatar: c.avatar, childAvatarImage: c.avatarImage, childId: c.id }))
+    ).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+  , [children]);
+
+  const filtered = useMemo(() => 
+    allHistory
+      .filter((h) => selectedChild === 'all' || String(h.childId) === String(selectedChild))
+      .filter((h) => typeFilter === 'all' || h.type === typeFilter)
+  , [allHistory, selectedChild, typeFilter]);
+
+  const stats = useMemo(() => {
+    const earned = filtered.filter(h => h.type === 'earn').reduce((sum, h) => sum + (h.points || 0), 0);
+    const spent = filtered.filter(h => h.type === 'spend').reduce((sum, h) => sum + (h.points || 0), 0);
+    return { earned, spent };
+  }, [filtered]);
+
+  const handleDelete = async (childId, historyId) => {
+    if (!confirm('この履歴を削除しますか？\n(削除すると、その分のポイントも自動的に調整されます)')) return;
+    await deleteHistoryItem(childId, historyId);
+    setChildren([...getChildren()]);
+  };
+
+  const handleUpdatePoints = async () => {
+    if (!editingItem) return;
+    await updateHistoryItem(editingItem.childId, editingItem.historyId, { points: editingItem.points });
+    setEditingItem(null);
+    setChildren([...getChildren()]);
+  };
+
+  const handleAddManual = async () => {
+    if (!addForm.childId) return alert('子どもを選択してください');
+    if (!addForm.taskName.trim()) return alert('内容を入力してください');
+    
+    // For type=spend, amount needs to be negative if we adjust points, wait, `points/adjust` uses Math.max(0, points + amount). 
+    // If type === 'spend', amount must be negative so it deducts.
+    const amount = addForm.type === 'earn' ? addForm.points : -Math.abs(addForm.points);
+    
+    await addManualHistory(addForm.childId, {
+      amount,
+      category: addForm.category,
+      taskName: addForm.taskName,
+      taskEmoji: addForm.taskEmoji,
+      type: addForm.type
+    });
+    
+    setAddingItem(false);
+    setAddForm({ ...addForm, taskName: '', points: 10 });
+    setChildren([...getChildren()]);
+  };
 
   const formatDate = (iso) => {
+    if (!iso) return '--/--';
     const d = new Date(iso);
+    if (isNaN(d.getTime())) return '--/--';
     return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
   };
 
   return (
     <div className="page admin-page">
-      <Header title="📊 ポイント履歴" showBack />
+      <Header title="📊 ポイント履歴" showBack backTo={location.state?.backTo} />
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div style={{ padding: '0 16px 16px', textAlign: 'right' }}>
+        <button className="btn btn-outline btn-sm" onClick={() => setAddingItem(true)}>
+          ➕ 手動で追加
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', padding: '0 16px' }}>
         <select className="input" style={{ flex: 1, minWidth: 120 }} value={selectedChild} onChange={(e) => setSelectedChild(e.target.value)}>
           <option value="all">全員</option>
           {children.map((c) => (
@@ -38,29 +112,170 @@ export default function HistoryView() {
         </select>
       </div>
 
+      <div className="card" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-around', padding: '12px 8px' }}>
+        <div className="text-center">
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>合計獲得</div>
+          <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--pink-dark)' }}>{stats.earned}</div>
+        </div>
+        <div style={{ width: 1, background: '#eee' }}></div>
+        <div className="text-center">
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>合計使用</div>
+          <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#555' }}>{stats.spent}</div>
+        </div>
+      </div>
+
       {filtered.length === 0 ? (
         <div className="empty-state"><div className="empty-emoji">📊</div><p>履歴がありません</p></div>
       ) : (
-        filtered.slice(0, 100).map((h) => (
-          <div key={h.id} className="history-item">
-            <span className="h-emoji">{h.taskEmoji}</span>
-            <div className="h-info">
-              <div className="h-name">
-                {h.childAvatarImage ? (
-                  <img src={h.childAvatarImage} alt="avatar" style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'cover', verticalAlign: 'middle', marginRight: 4 }} />
-                ) : (
-                  h.childAvatar + ' '
-                )}
-                {h.childName} — {h.taskName}
+        <div className="admin-history-list" style={{ paddingBottom: 40 }}>
+          {filtered.slice(0, 100).map((h) => (
+            <div key={h.id} className="history-item card" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span className="h-emoji" style={{ fontSize: '1.5rem' }}>{h.taskEmoji}</span>
+              <div className="h-info" style={{ flex: 1 }}>
+                <div className="h-name" style={{ fontWeight: 800, fontSize: '0.9rem' }}>
+                  {h.childAvatarImage ? (
+                    <img src={h.childAvatarImage} alt="avatar" style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'cover', verticalAlign: 'middle', marginRight: 4 }} />
+                  ) : (
+                    h.childAvatar + ' '
+                  )}
+                  {renderRuby(h.childName)} — {renderRuby(h.taskName)}
+                </div>
+                <div className="h-date" style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{formatDate(h.date)}</div>
               </div>
-              <div className="h-date">{formatDate(h.date)}</div>
+              <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div className={`h-points ${h.type}`} style={{ fontWeight: 900, fontSize: '1.1rem' }}>
+                  {h.type === 'earn' ? '+' : '−'}{h.points}
+                </div>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button 
+                    className="btn btn-sm btn-outline" 
+                    style={{ fontSize: '0.8rem', padding: '4px 8px', minWidth: 0 }}
+                    onClick={() => setEditingItem({ childId: h.childId, historyId: h.id, points: h.points })}
+                    title="ポイント修正"
+                  >
+                    ✏️
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-outline" 
+                    style={{ fontSize: '0.8rem', padding: '4px 8px', minWidth: 0, color: 'var(--pink-dark)' }}
+                    onClick={() => handleDelete(h.childId, h.id)}
+                    title="削除"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className={`h-points ${h.type}`}>
-              {h.type === 'earn' ? '+' : '−'}{h.points}
+          ))}
+        </div>
+      )}
+
+      {editingItem && (
+        <div className="modal-overlay">
+          <div className="modal card">
+            <h3>ポイント修正</h3>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginBottom: 16 }}>
+              数値を変更すると、子どもの現在の所持ポイントも自動的に調整されます。
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+              <button 
+                className="btn btn-outline" 
+                style={{ fontSize: '1.2rem', padding: '4px 16px' }}
+                onClick={() => setEditingItem({ ...editingItem, points: Math.max(0, editingItem.points - 5) })}
+              >−</button>
+              <input 
+                type="number" 
+                className="input" 
+                value={editingItem.points} 
+                onChange={(e) => setEditingItem({ ...editingItem, points: parseInt(e.target.value) || 0 })}
+                style={{ fontSize: '1.5rem', textAlign: 'center', flex: 1 }}
+              />
+              <button 
+                className="btn btn-outline" 
+                style={{ fontSize: '1.2rem', padding: '4px 16px' }}
+                onClick={() => setEditingItem({ ...editingItem, points: editingItem.points + 5 })}
+              >+</button>
+            </div>
+            <div className="flex gap-8">
+              <button className="btn btn-outline flex-1" onClick={() => setEditingItem(null)}>キャンセル</button>
+              <button className="btn btn-pink flex-1" onClick={handleUpdatePoints}>保存する</button>
             </div>
           </div>
-        ))
+        </div>
       )}
+
+      {addingItem && (
+        <div className="modal-overlay">
+          <div className="modal card" style={{ padding: 20 }}>
+            <h3 style={{ marginBottom: 16 }}>手動で履歴を追加</h3>
+            
+            <div className="flex-col gap-12">
+              <div>
+                <label className="point-label">対象の子ども</label>
+                <select className="input" style={{ width: '100%' }} value={addForm.childId} onChange={e => setAddForm({...addForm, childId: e.target.value})}>
+                  {children.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button 
+                  className={`btn flex-1 ${addForm.type === 'earn' ? 'btn-pink' : 'btn-outline'}`}
+                  onClick={() => setAddForm({...addForm, type: 'earn'})}
+                >➕ 加算</button>
+                <button 
+                  className={`btn flex-1 ${addForm.type === 'spend' ? 'btn-purple' : 'btn-outline'}`}
+                  onClick={() => setAddForm({...addForm, type: 'spend'})}
+                >➖ 減算</button>
+              </div>
+
+              <div>
+                <label className="point-label">ポイント数</label>
+                <input 
+                  type="number" className="input" style={{ width: '100%' }} 
+                  value={addForm.points} onChange={e => setAddForm({...addForm, points: parseInt(e.target.value) || 0})}
+                  min={1}
+                />
+              </div>
+
+              <div>
+                <label className="point-label">対象カテゴリー</label>
+                <select className="input" style={{ width: '100%' }} value={addForm.category} onChange={e => setAddForm({...addForm, category: e.target.value})}>
+                  {manualCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ width: 80 }}>
+                  <label className="point-label">絵文字</label>
+                  <input 
+                    type="text" className="input" style={{ width: '100%', textAlign: 'center' }} 
+                    value={addForm.taskEmoji} onChange={e => setAddForm({...addForm, taskEmoji: e.target.value})}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label className="point-label">内容</label>
+                  <input 
+                    type="text" className="input" style={{ width: '100%' }} 
+                    placeholder="例: 特別なお手伝い"
+                    value={addForm.taskName} onChange={e => setAddForm({...addForm, taskName: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 24 }}>
+              <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setAddingItem(false)}>キャンセル</button>
+              <button className="btn btn-pink" style={{ flex: 1 }} onClick={handleAddManual}>追加する</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .h-points.earn { color: var(--pink-dark); }
+        .h-points.spend { color: #555; }
+        .admin-history-list { padding-top: 4px; }
+      `}</style>
     </div>
   );
 }

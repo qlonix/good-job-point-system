@@ -3,6 +3,7 @@ import HomePage from './pages/HomePage';
 import ChildDashboard from './pages/ChildDashboard';
 import TaskSelect from './pages/TaskSelect';
 import RewardExchange from './pages/RewardExchange';
+import ChildHistory from './pages/ChildHistory';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ChildManager from './pages/admin/ChildManager';
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/child/:id" element={<ChildDashboard />} />
         <Route path="/child/:id/tasks/:category" element={<TaskSelect />} />
         <Route path="/child/:id/rewards" element={<RewardExchange />} />
+        <Route path="/child/:id/history" element={<ChildHistory />} />
         <Route path="/admin" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/children" element={<ChildManager />} />

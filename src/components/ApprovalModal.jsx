@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { getPin } from '../data/store';
 import { renderRuby } from '../utils/format';
+import { authenticateBiometric, registerBiometric } from '../utils/auth';
 
 const IS_WEBKIT = 'WebkitTextSecurity' in document.documentElement.style;
 
@@ -20,36 +21,21 @@ export default function ApprovalModal({ actionLabel, actionEmoji, childName, onA
   };
 
   const handleBiometric = async () => {
-    // Try Web Authentication API for biometric / device unlock
     try {
-      if (window.PublicKeyCredential && navigator.credentials) {
-        // Use a simple credential check via the device's screen lock
-        const credential = await navigator.credentials.create({
-          publicKey: {
-            challenge: new Uint8Array(32),
-            rp: { name: 'がんばったねポイント' },
-            user: {
-              id: new Uint8Array(16),
-              name: 'parent',
-              displayName: 'おやの にんしょう',
-            },
-            pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
-            authenticatorSelection: {
-              authenticatorAttachment: 'platform',
-              userVerification: 'required',
-            },
-            timeout: 60000,
-          },
-        });
-        if (credential) {
-          onApprove();
-        }
+      const storedId = localStorage.getItem('gj_credential_id');
+      let success = false;
+
+      if (storedId) {
+        const assertion = await authenticateBiometric();
+        if (assertion) success = true;
       } else {
-        // Fallback to PIN
-        setMode('pin');
+        const credential = await registerBiometric();
+        if (credential) success = true;
       }
-    } catch {
-      // If biometric fails or is cancelled, fall back to PIN
+
+      if (success) onApprove();
+    } catch (e) {
+      console.error('Biometric failed:', e);
       setMode('pin');
     }
   };
@@ -58,21 +44,21 @@ export default function ApprovalModal({ actionLabel, actionEmoji, childName, onA
     <div className="modal-overlay" onClick={onCancel}>
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
         <div style={{ fontSize: '3rem', marginBottom: 8 }}>🔓</div>
-        <h2 style={{ marginBottom: 4 }}><ruby>親<rt>おや</rt></ruby>の<ruby>確認<rt>かくにん</rt></ruby></h2>
+        <h2 style={{ marginBottom: 4 }}>親の確認</h2>
         <p style={{ color: 'var(--text-light)', fontSize: '0.9rem', marginBottom: 16 }}>
-          <strong>{childName}</strong> が 「{actionEmoji} {renderRuby(actionLabel)}」
+          <strong>{renderRuby(childName)}</strong> が 「{actionEmoji} {renderRuby(actionLabel)}」
         </p>
 
         {mode === 'select' && (
           <div className="flex-col gap-12">
             <button className="btn btn-pink btn-full btn-lg" onClick={handleBiometric}>
-              🔐 かおやゆびでかくにん
+              🔐 顔や指で確認
             </button>
             <button className="btn btn-purple btn-full" onClick={() => setMode('pin')}>
-              🔢 パスコードでかくにん
+              🔢 パスコードで確認
             </button>
             <button className="btn btn-outline btn-full" onClick={onCancel}>
-              もどる
+              キャンセル
             </button>
           </div>
         )}
@@ -80,7 +66,7 @@ export default function ApprovalModal({ actionLabel, actionEmoji, childName, onA
         {mode === 'pin' && (
           <div>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginBottom: 12 }}>
-              パスコードをにゅうりょくしてね
+              パスコードを入力してください
             </p>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
               <input
@@ -91,22 +77,22 @@ export default function ApprovalModal({ actionLabel, actionEmoji, childName, onA
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                 placeholder="0000"
-                style={{ width: 140, textAlign: 'center', fontSize: '1.5rem', fontWeight: 900, letterSpacing: 8, WebkitTextSecurity: 'disc' }}
+                style={{ width: 140, textAlign: 'center', fontSize: '1.5rem', fontWeight: 900, letterSpacing: 8, textIndent: 8, padding: 0, WebkitTextSecurity: 'disc' }}
                 autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && handlePinSubmit()}
               />
             </div>
             {error && (
               <p style={{ color: 'var(--pink-dark)', fontWeight: 700, marginBottom: 8, animation: 'wiggle 0.4s ease' }}>
-                パスコードがちがいます
+                パスコードが違います
               </p>
             )}
             <div className="flex-col gap-8">
               <button className="btn btn-pink btn-full" onClick={handlePinSubmit}>
-                かくにん ✓
+                確認 ✓
               </button>
               <button className="btn btn-outline btn-full" onClick={() => setMode('select')}>
-                ← もどる
+                ← 戻る
               </button>
             </div>
           </div>

@@ -17,27 +17,29 @@ function generateId() {
 $defaultData = [
     'children' => [],
     'tasks' => [
-        ['id' => 't1', 'name' => '食器(しょっき)を片(かた)付(つ)ける', 'emoji' => '🍽️', 'points' => 10, 'category' => 'seikatsu'],
-        ['id' => 't2', 'name' => '部屋(へや)を掃除(そうじ)する', 'emoji' => '🧹', 'points' => 15, 'category' => 'otetsudai'],
-        ['id' => 't3', 'name' => '洗濯物(せんたくもの)をたたむ', 'emoji' => '👕', 'points' => 10, 'category' => 'otetsudai'],
-        ['id' => 't4', 'name' => 'ペットの世話(せわ)をする', 'emoji' => '🐕', 'points' => 10, 'category' => 'otetsudai'],
-        ['id' => 't5', 'name' => 'ゴミを出(だ)す', 'emoji' => '🗑️', 'points' => 5, 'category' => 'seikatsu'],
-        ['id' => 't8', 'name' => '宿題(しゅくだい)をやる', 'emoji' => '📝', 'points' => 15, 'category' => 'obenkyo'],
-        ['id' => 't9', 'name' => '本(ほん)を読(よ)む', 'emoji' => '📖', 'points' => 10, 'category' => 'obenkyo'],
-        ['id' => 't10', 'name' => '漢字(かんじ)の練習(れんしゅう)', 'emoji' => '✍️', 'points' => 10, 'category' => 'obenkyo'],
+        ['id' => 't1', 'name' => '[食器(しょっき)]を[片(かた)付(つ)]ける', 'emoji' => '🍽️', 'points' => 10, 'category' => 'seikatsu'],
+        ['id' => 't2', 'name' => '[部屋(へや)]を[掃除(そうじ)]する', 'emoji' => '🧹', 'points' => 15, 'category' => 'otetsudai'],
+        ['id' => 't3', 'name' => '[洗濯物(せんたくもの)]をたたむ', 'emoji' => '👕', 'points' => 10, 'category' => 'otetsudai'],
+        ['id' => 't4', 'name' => 'ペットの[世話(せわ)]をする', 'emoji' => '🐕', 'points' => 10, 'category' => 'otetsudai'],
+        ['id' => 't5', 'name' => 'ゴミを[出(だ)]す', 'emoji' => '🗑️', 'points' => 5, 'category' => 'seikatsu'],
+        ['id' => 't8', 'name' => '[宿題(しゅくだい)]をやる', 'emoji' => '📝', 'points' => 15, 'category' => 'obenkyo'],
+        ['id' => 't9', 'name' => '[本(ほん)]を[読(よ)]む', 'emoji' => '📖', 'points' => 10, 'category' => 'obenkyo'],
+        ['id' => 't10', 'name' => '[漢字(かんじ)]の[練習(れんしゅう)]', 'emoji' => '✍️', 'points' => 10, 'category' => 'obenkyo'],
     ],
     'rewards' => [
-        ['id' => 'r1', 'name' => 'シール1枚(まい)', 'emoji' => '⭐', 'cost' => 20],
+        ['id' => 'r1', 'name' => 'シール1[枚(まい)]', 'emoji' => '⭐', 'cost' => 20],
         ['id' => 'r2', 'name' => 'おやつ', 'emoji' => '🍪', 'cost' => 30],
-        ['id' => 'r3', 'name' => 'ゲーム15分(ふん)', 'emoji' => '🎮', 'cost' => 50],
-        ['id' => 'r4', 'name' => 'おこづかい100円(えん)', 'emoji' => '💰', 'cost' => 100],
+        ['id' => 'r3', 'name' => 'ゲーム15[分(ふん)]', 'emoji' => '🎮', 'cost' => 50],
+        ['id' => 'r4', 'name' => 'おこづかい100[円(えん)]', 'emoji' => '💰', 'cost' => 100],
     ],
     'categories' => [
         ['id' => 'seikatsu', 'name' => 'せいかつ', 'emoji' => '🏠', 'color' => '#ff9a9e'],
         ['id' => 'otetsudai', 'name' => 'おてつだい', 'emoji' => '🧹', 'color' => '#3db87a'],
         ['id' => 'obenkyo', 'name' => 'おべんきょう', 'emoji' => '📚', 'color' => '#4fa8e0']
     ],
-    'emojis' => ['⭐','🍪','🎮','📺','💰','🎡','🍦','📚','🎨','🧸','🎶','🏊','🎂','🍕','🎪','🎠','🌟','🍫','🎯','🎈','🎁'],
+    'avatar_emojis' => ['👧','👦','👶','🧒','👱','🐱','🐶','🐰','🦊','🐻','🐼','🦁','🐮','🐷','🐵','🐧','🐙','🦋'],
+    'task_emojis' => ['📝','📖','✍️','🔢','🎨','🎹','🧹','🧼','🍽️','🧺','🗑️','🌱','🐕','👟','🛌','🏫','🧪','📏','🏃','🧽'],
+    'reward_emojis' => ['🍦','🍪','🍫','🍭','🍕','🎡','🎮','📺','🧸','📚','🎁','💰','🎟️','🎈','⭐','🎬','🏞️','🍱','🍰','⚽'],
     'pin' => '0000'
 ];
 
@@ -49,7 +51,11 @@ $data = json_decode(file_get_contents($dataFile), true);
 if (!$data) $data = $defaultData;
 else {
     if (!isset($data['categories'])) $data['categories'] = $defaultData['categories'];
-    if (!isset($data['emojis'])) $data['emojis'] = $defaultData['emojis'];
+    if (!isset($data['avatar_emojis'])) $data['avatar_emojis'] = $defaultData['avatar_emojis'];
+    if (!isset($data['reward_emojis'])) $data['reward_emojis'] = $defaultData['reward_emojis'];
+    if (!isset($data['task_emojis'])) {
+        $data['task_emojis'] = isset($data['emojis']) ? $data['emojis'] : $defaultData['task_emojis'];
+    }
 }
 
 function save() {
@@ -69,6 +75,26 @@ function getTotalPoints($child) {
 // Router
 if ($route === 'data' && $method === 'GET') {
     echo json_encode($data);
+    exit;
+}
+
+// Specific reorder routes first to avoid conflict with /:id patterns
+if ($route === 'tasks/reorder' && $method === 'POST') {
+    $data['tasks'] = $body;
+    save();
+    echo json_encode(['success' => true]);
+    exit;
+}
+if ($route === 'rewards/reorder' && $method === 'POST') {
+    $data['rewards'] = $body;
+    save();
+    echo json_encode(['success' => true]);
+    exit;
+}
+if ($route === 'children/reorder' && $method === 'POST') {
+    $data['children'] = $body;
+    save();
+    echo json_encode(['success' => true]);
     exit;
 }
 
@@ -197,11 +223,11 @@ if (preg_match('/^children\/([^\/]+)\/points\/adjust$/', $route, $matches) && $m
         array_unshift($data['children'][$idx]['history'], [
             'id' => generateId(),
             'date' => date('c'),
-            'taskName' => $amount >= 0 ? 'ポイント手動追加' : 'ポイント手動減算',
-            'taskEmoji' => $amount >= 0 ? '➕' : '➖',
+            'taskName' => $body['taskName'] ?? ($amount >= 0 ? 'ポイント手動追加' : 'ポイント手動減算'),
+            'taskEmoji' => $body['taskEmoji'] ?? ($amount >= 0 ? '➕' : '➖'),
             'points' => abs($amount),
             'category' => $cat,
-            'type' => $amount >= 0 ? 'earn' : 'spend'
+            'type' => $body['type'] ?? ($amount >= 0 ? 'earn' : 'spend')
         ]);
         save();
         echo json_encode($data['children'][$idx]);
@@ -327,23 +353,26 @@ if ($route === 'categories') {
 
 if ($route === 'emojis') {
     if ($method === 'GET') {
-        echo json_encode($data['emojis'] ?? []);
+        $type = $_GET['type'] ?? 'task';
+        $key = 'task_emojis';
+        if ($type === 'avatar') $key = 'avatar_emojis';
+        if ($type === 'reward') $key = 'reward_emojis';
+        echo json_encode($data[$key] ?? []);
         exit;
     }
     if ($method === 'POST') {
-        $data['emojis'] = $body;
+        $type = $_GET['type'] ?? 'task';
+        $key = 'task_emojis';
+        if ($type === 'avatar') $key = 'avatar_emojis';
+        if ($type === 'reward') $key = 'reward_emojis';
+        $data[$key] = $body;
         save();
         echo json_encode(['success' => true]);
         exit;
     }
 }
 
-if ($route === 'tasks/reorder' && $method === 'POST') {
-    $data['tasks'] = $body;
-    save();
-    echo json_encode(['success' => true]);
-    exit;
-}
+
 
 if ($route === 'import' && $method === 'POST') {
     if (isset($body['children']) && isset($body['tasks'])) {
@@ -355,6 +384,65 @@ if ($route === 'import' && $method === 'POST') {
         echo json_encode(['error' => 'Invalid data']);
     }
     exit;
+}
+
+if (preg_match('/^children\/([^\/]+)\/history\/([^\/]+)$/', $route, $matches)) {
+    $childId = $matches[1];
+    $histId = $matches[2];
+    $cIdx = array_search($childId, array_column($data['children'], 'id'));
+    
+    if ($cIdx !== false) {
+        $hIdx = array_search($histId, array_column($data['children'][$cIdx]['history'], 'id'));
+        if ($hIdx !== false) {
+            $item = $data['children'][$cIdx]['history'][$hIdx];
+            $cat = $item['category'];
+            
+            if ($method === 'DELETE') {
+                // Reverse points
+                if ($item['type'] === 'earn') {
+                    $data['children'][$cIdx]['points'][$cat] -= $item['points'];
+                } else {
+                    // spend
+                    // Re-add to any category? Better to add back to the same category or just spread it?
+                    // Actually 'reward' category doesn't exist in points, it spread across categories.
+                    // This is tricky. Let's assume we add back to 'otetsudai' if not specified, 
+                    // or better, if it's 'reward', we just add it back to the first available category.
+                    if ($cat === 'reward') {
+                      $cats = array_keys($data['children'][$cIdx]['points']);
+                      $firstCat = !empty($cats) ? $cats[0] : 'otetsudai';
+                      $data['children'][$cIdx]['points'][$firstCat] += $item['points'];
+                    } else {
+                      $data['children'][$cIdx]['points'][$cat] += $item['points'];
+                    }
+                }
+                array_splice($data['children'][$cIdx]['history'], $hIdx, 1);
+                save();
+                echo json_encode(['success' => true, 'child' => $data['children'][$cIdx]]);
+                exit;
+            }
+            if ($method === 'PUT') {
+                $newPoints = (int)$body['points'];
+                $diff = $newPoints - $item['points'];
+                
+                if ($item['type'] === 'earn') {
+                    $data['children'][$cIdx]['points'][$cat] += $diff;
+                } else {
+                    // spend
+                    if ($cat === 'reward') {
+                      $cats = array_keys($data['children'][$cIdx]['points']);
+                      $firstCat = !empty($cats) ? $cats[0] : 'otetsudai';
+                      $data['children'][$cIdx]['points'][$firstCat] -= $diff; // subtract the diff from points
+                    } else {
+                      $data['children'][$cIdx]['points'][$cat] -= $diff;
+                    }
+                }
+                $data['children'][$cIdx]['history'][$hIdx]['points'] = $newPoints;
+                save();
+                echo json_encode(['success' => true, 'child' => $data['children'][$cIdx]]);
+                exit;
+            }
+        }
+    }
 }
 
 http_response_code(404);

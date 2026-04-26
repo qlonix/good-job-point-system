@@ -103,29 +103,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {!scanning && children.length > 0 && (
-          <div style={{ width: '100%', maxWidth: 360, marginTop: 16 }}>
-            <p style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-light)', marginBottom: 8, textAlign: 'center' }}>
-              または、なまえをえらんでね：
-            </p>
-            <div className="flex-col gap-8">
-              {children.map((c) => (
-                <button
-                  key={c.id}
-                  className="btn btn-outline btn-full"
-                  onClick={() => navigate(`/child/${c.id}`)}
-                >
-                  {c.avatarImage ? (
-                    <img src={c.avatarImage} alt="avatar" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', verticalAlign: 'middle', marginRight: 8 }} />
-                  ) : (
-                    c.avatar + ' '
-                  )}
-                  {c.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

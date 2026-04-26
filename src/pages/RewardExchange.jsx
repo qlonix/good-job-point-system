@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import Header from '../components/Header';
 import Confetti from '../components/Confetti';
+import ApprovalModal from '../components/ApprovalModal';
 import { getRewards, spendPoints, getChildById, getTotalPoints } from '../data/store';
 import { renderRuby } from '../utils/format';
 
@@ -12,12 +13,13 @@ export default function RewardExchange() {
   const [child, setChild] = useState(getChildById(id));
   const [success, setSuccess] = useState(null);
   const [error, setError] = useState('');
+  const [confirming, setConfirming] = useState(null);
 
   if (!child) return null;
   const total = getTotalPoints(child);
 
-  const handleReward = (rewardId) => {
-    const result = spendPoints(id, rewardId);
+  const handleReward = async (rewardId) => {
+    const result = await spendPoints(id, rewardId);
     if (result.success) {
       const reward = rewards.find((r) => r.id === rewardId);
       setSuccess({ emoji: reward.emoji, name: reward.name, cost: reward.cost });
@@ -53,7 +55,7 @@ export default function RewardExchange() {
             <button
               key={r.id}
               className={`task-card reward-card ${canAfford ? '' : 'disabled'}`}
-              onClick={() => canAfford && handleReward(r.id)}
+              onClick={() => canAfford && setConfirming(r)}
             >
               <span className="task-emoji">{r.emoji}</span>
               <span className="task-name">{renderRuby(r.name)}</span>
@@ -66,12 +68,25 @@ export default function RewardExchange() {
         })}
       </div>
 
+      {confirming && (
+        <ApprovalModal
+          actionLabel={confirming.name}
+          actionEmoji={confirming.emoji}
+          childName={child.name}
+          onApprove={() => {
+            handleReward(confirming.id);
+            setConfirming(null);
+          }}
+          onCancel={() => setConfirming(null)}
+        />
+      )}
+
       {success && (
         <>
           <Confetti count={60} />
           <div className="success-overlay" onClick={() => { setSuccess(null); navigate(`/child/${id}`); }}>
             <div className="success-emoji">{success.emoji}</div>
-            <div className="success-text">{renderRuby(success.name)} <ruby>獲得<rt>かくとく</rt></ruby>！</div>
+            <div className="success-text">{renderRuby(`${success.name} [獲得(かくとく)]！`)}</div>
             <div className="success-points">−{success.cost} ポイント</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-light)' }}>
               おめでとう！🎉

@@ -42,6 +42,13 @@ app.post('/api/children', (req, res) => {
   res.json(child);
 });
 
+app.post('/api/children/reorder', (req, res) => {
+  const data = load();
+  data.children = req.body;
+  save(data);
+  res.json({ success: true });
+});
+
 app.put('/api/children/:id', (req, res) => {
   const data = load();
   const idx = data.children.findIndex(c => c.id === req.params.id);
@@ -54,6 +61,13 @@ app.put('/api/children/:id', (req, res) => {
 app.delete('/api/children/:id', (req, res) => {
   const data = load();
   data.children = data.children.filter(c => c.id !== req.params.id);
+  save(data);
+  res.json({ success: true });
+});
+
+app.post('/api/children/reorder', (req, res) => {
+  const data = load();
+  data.children = req.body;
   save(data);
   res.json({ success: true });
 });
@@ -125,11 +139,11 @@ app.post('/api/children/:id/points/adjust', (req, res) => {
   child.history.unshift({
     id: generateId(),
     date: new Date().toISOString(),
-    taskName: amount >= 0 ? 'ポイント手動追加' : 'ポイント手動減算',
-    taskEmoji: amount >= 0 ? '➕' : '➖',
+    taskName: req.body.taskName ?? (amount >= 0 ? 'ポイント手動追加' : 'ポイント手動減算'),
+    taskEmoji: req.body.taskEmoji ?? (amount >= 0 ? '➕' : '➖'),
     points: Math.abs(amount),
     category,
-    type: amount >= 0 ? 'earn' : 'spend',
+    type: req.body.type ?? (amount >= 0 ? 'earn' : 'spend'),
   });
   save(data);
   res.json(child);
@@ -152,6 +166,13 @@ app.post('/api/tasks', (req, res) => {
   data.tasks.push(task);
   save(data);
   res.json(task);
+});
+
+app.post('/api/tasks/reorder', (req, res) => {
+  const data = load();
+  data.tasks = req.body;
+  save(data);
+  res.json({ success: true });
 });
 
 app.put('/api/tasks/:id', (req, res) => {
@@ -183,6 +204,13 @@ app.post('/api/rewards', (req, res) => {
   res.json(reward);
 });
 
+app.post('/api/rewards/reorder', (req, res) => {
+  const data = load();
+  data.rewards = req.body;
+  save(data);
+  res.json({ success: true });
+});
+
 app.put('/api/rewards/:id', (req, res) => {
   const data = load();
   const idx = data.rewards.findIndex(r => r.id === req.params.id);
@@ -195,6 +223,25 @@ app.put('/api/rewards/:id', (req, res) => {
 app.delete('/api/rewards/:id', (req, res) => {
   const data = load();
   data.rewards = data.rewards.filter(r => r.id !== req.params.id);
+  save(data);
+  res.json({ success: true });
+});
+
+
+app.post('/api/categories', (req, res) => {
+  const data = load();
+  data.categories = req.body;
+  save(data);
+  res.json({ success: true });
+});
+
+app.post('/api/emojis', (req, res) => {
+  const { type } = req.query;
+  const data = load();
+  let key = 'task_emojis';
+  if (type === 'avatar') key = 'avatar_emojis';
+  if (type === 'reward') key = 'reward_emojis';
+  data[key] = req.body;
   save(data);
   res.json({ success: true });
 });

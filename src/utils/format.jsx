@@ -6,10 +6,10 @@ import React from 'react';
  */
 export const renderRuby = (text) => {
   if (typeof text !== 'string' || !text) return text;
-  // 漢字(ひらがな/カタカナ) のパターンにマッチさせる
-  const parts = text.split(/([一-龠々]+\([ぁ-んァ-ヶー]+\))/g);
+  // [文字列(ふりがな)] のパターンにマッチさせる
+  const parts = text.split(/(\[[^\]]+\([ぁ-んァ-ヶー]+\)\])/g);
   return parts.map((part, i) => {
-    const match = part.match(/([一-龠々]+)\(([ぁ-んァ-ヶー]+)\)/);
+    const match = part.match(/\[([^\]]+)\(([ぁ-んァ-ヶー]+)\)\]/);
     if (match) {
       return <ruby key={i}>{match[1]}<rt>{match[2]}</rt></ruby>;
     }

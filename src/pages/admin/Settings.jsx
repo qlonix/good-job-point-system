@@ -78,7 +78,7 @@ export default function Settings() {
           <input className="input" type={IS_WEBKIT ? 'text' : 'password'} inputMode="numeric" maxLength={4} value={newPin} onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))} style={{ WebkitTextSecurity: 'disc' }} />
         </div>
         {pinMsg && <p style={{ fontSize: '0.85rem', fontWeight: 700, color: pinMsg.includes('✅') ? '#2a7d56' : 'var(--pink-dark)', marginBottom: 8 }}>{pinMsg}</p>}
-        <button className="btn btn-admin btn-full" onClick={handlePinChange}>PINを変更</button>
+        <button className="btn btn-admin btn-full" style={{ marginTop: 8 }} onClick={handlePinChange}>PINを変更</button>
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>

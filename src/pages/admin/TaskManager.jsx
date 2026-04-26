@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import Header from '../../components/Header';
 import { getTasks, addTask, updateTask, deleteTask, getCategories, getEmojis, reorderTasks } from '../../data/store';
+import SortableList from '../../components/SortableList';
+import { renderRuby } from '../../utils/format';
 
 export default function TaskManager() {
   const categories = getCategories();
-  const emojis = getEmojis();
+  const emojis = getEmojis('task');
   const [tab, setTab] = useState(categories[0]?.id || '');
   const [tasks, setTasks] = useState(getTasks());
   const [showModal, setShowModal] = useState(false);
@@ -28,68 +30,77 @@ export default function TaskManager() {
 
   const handleSave = async () => {
     if (!form.name.trim()) return;
-    if (editing) await updateTask(editing.id, form);
-    else await addTask(form);
     setShowModal(false);
+    if (editing) {
+        await updateTask(editing.id, form);
+    } else {
+        await addTask(form);
+    }
     refresh();
   };
 
   const handleDelete = async (id) => {
-    if (confirm('削除しますか？')) { await deleteTask(id); refresh(); }
+    if (confirm('削除しますか？')) {
+        setTasks(tasks.filter(t => t.id !== id));
+        await deleteTask(id);
+        refresh();
+    }
   };
 
-  const handleMove = async (id, dir) => {
-    const idx = tasks.findIndex(t => t.id === id);
-    if ((dir === -1 && idx === 0) || (dir === 1 && idx === tasks.length - 1)) return;
-    const nextIdx = tasks.findIndex((t, i) => i > (dir === -1 ? -1 : idx) && i < (dir === -1 ? idx : tasks.length) && t.category === tab && (dir === -1 ? i < idx : i > idx));
-    // Actually, simple swap within the filtered list might be confusing if global order matters.
-    // Let's find the sibling within the SAME category.
-    const sameCatIndices = tasks.map((t, i) => t.category === tab ? i : -1).filter(i => i !== -1);
-    const pos = sameCatIndices.indexOf(idx);
-    if ((dir === -1 && pos === 0) || (dir === 1 && pos === sameCatIndices.length - 1)) return;
-    
-    const targetIdx = sameCatIndices[pos + dir];
+  const handleReorder = async (nextFiltered) => {
+    // フィルタリングされたリスト内の並び順を全体のリストに反映する
     const newTasks = [...tasks];
-    [newTasks[idx], newTasks[targetIdx]] = [newTasks[targetIdx], newTasks[idx]];
+    
+    // 現在のタブのタスクのインデックスを特定
+    const indices = tasks.map((t, i) => t.category === tab ? i : -1).filter(i => i !== -1);
+    
+    // 全体リスト内の該当箇所を新しい順序で置き換え
+    indices.forEach((originalIndex, i) => {
+      newTasks[originalIndex] = nextFiltered[i];
+    });
+
+    setTasks(newTasks);
     await reorderTasks(newTasks);
-    refresh();
   };
 
   return (
     <div className="page admin-page">
       <Header title="📋 タスク管理" showBack />
 
-      <div className="tabs">
+      <div className="tabs" style={{ marginBottom: 16 }}>
         {categories.map(c => (
           <button key={c.id} className={`tab ${tab === c.id ? 'active' : ''}`} onClick={() => setTab(c.id)}>
-            {c.emoji} {c.name}
+            {c.emoji} {renderRuby(c.name)}
           </button>
         ))}
       </div>
 
-      <button className="btn btn-admin btn-full" onClick={openAdd}>+ タスクを追加</button>
+      <button className="btn btn-admin btn-full" style={{ marginBottom: 16 }} onClick={openAdd}>+ タスクを追加</button>
 
       <div className="admin-list">
         {filtered.length === 0 && (
           <div className="empty-state"><div className="empty-emoji">📋</div><p>タスクがありません</p></div>
         )}
-        {filtered.map((t) => (
-          <div key={t.id} className="admin-list-item">
-            <span className="item-emoji">{t.emoji}</span>
-            <div className="item-info">
-              <div className="item-name">{t.name}</div>
-              <div className="item-sub">{t.points} ポイント</div>
-            </div>
-            <div className="item-actions">
-              <div className="flex gap-4 mr-8">
-                <button className="btn btn-sm btn-outline" style={{ padding: '2px 8px' }} onClick={() => handleMove(t.id, -1)}>↑</button>
-                <button className="btn btn-sm btn-outline" style={{ padding: '2px 8px' }} onClick={() => handleMove(t.id, 1)}>↓</button>
+        <SortableList
+          items={filtered}
+          onReorder={handleReorder}
+          renderItem={(t, i, { attributes, listeners }) => (
+            <div className="admin-list-item" style={{ marginBottom: 12 }}>
+              <div className="item-main">
+                <div className="drag-handle" {...attributes} {...listeners}>⋮⋮</div>
+                <span className="item-emoji">{t.emoji}</span>
+                <div className="item-info">
+                  <div className="item-name">{renderRuby(t.name)}</div>
+                  <div className="item-sub">{t.points} ポイント</div>
+                </div>
               </div>
-              <button className="btn btn-sm btn-outline" onClick={() => openEdit(t)}>✏️</button>
-              <button className="btn btn-sm btn-danger" onClick={() => handleDelete(t.id)}>🗑</button>
+              <div className="item-actions">
+                <button className="btn btn-sm btn-outline" onClick={(e) => { e.stopPropagation(); openEdit(t); }}>✏️</button>
+                <button className="btn btn-sm btn-danger" onClick={(e) => { e.stopPropagation(); handleDelete(t.id); }}>🗑</button>
+              </div>
             </div>
-          </div>
-        ))}
+          )}
+        />
       </div>
 
       {showModal && (
@@ -98,7 +109,7 @@ export default function TaskManager() {
             <h2>{editing ? 'タスクを編集' : 'タスクを追加'}</h2>
             <div className="form-group">
               <label className="label">名前</label>
-              <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="例: [宿題(しゅくだい)]をやる" />
             </div>
             <div className="form-group">
               <label className="label">絵文字</label>
