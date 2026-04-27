@@ -50,6 +50,31 @@ const getPeriodKey = (isoString, period) => {
   }
 };
 
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="card" style={{ padding: '10px', fontSize: '0.8rem', border: '1px solid #ddd', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', background: 'white', minWidth: '150px', pointerEvents: 'none' }}>
+        <div style={{ fontWeight: 'bold', marginBottom: '8px', borderBottom: '1px solid #eee', paddingBottom: '4px' }}>{label}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ color: 'var(--pink-dark)', fontWeight: 'bold' }}>獲得:</span>
+            <span style={{ fontWeight: 'bold' }}>+{payload.find(p => p.dataKey === 'earn')?.value || 0} pt</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ color: '#555', fontWeight: 'bold' }}>使用:</span>
+            <span style={{ fontWeight: 'bold' }}>-{payload.find(p => p.dataKey === 'spend')?.value || 0} pt</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #eee', gap: 12 }}>
+            <span style={{ color: '#ff7300', fontWeight: 'bold' }}>使用可能:</span>
+            <span style={{ fontWeight: 'bold' }}>{payload.find(p => p.dataKey === 'cumulative')?.value || 0} pt</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function ChildHistory() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -259,7 +284,7 @@ export default function ChildHistory() {
                     <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#888' }} axisLine={{ stroke: '#eee' }} tickLine={false} />
                     <YAxis yAxisId="left" tick={{ fontSize: 9, fill: '#888' }} orientation="left" axisLine={false} tickLine={false} />
                     <YAxis yAxisId="right" tick={{ fontSize: 9, fill: '#888' }} orientation="right" axisLine={false} tickLine={false} />
-                    <Tooltip />
+                    <Tooltip content={<CustomTooltip />} />
                     {!hiddenItems.has('bars') && <Bar yAxisId="left" dataKey="earn" fill="var(--pink-dark)" fillOpacity={0.6} isAnimationActive={false} />}
                     {!hiddenItems.has('bars') && <Bar yAxisId="left" dataKey="spend" fill="#8884d8" fillOpacity={0.6} isAnimationActive={false} />}
                     {!hiddenItems.has('cumulative') && <Line yAxisId="right" type="monotone" dataKey="cumulative" stroke="#ff7300" strokeWidth={2} dot={false} isAnimationActive={false} />}
