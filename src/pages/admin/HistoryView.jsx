@@ -198,6 +198,18 @@ export default function HistoryView() {
       .filter((h) => typeFilter === 'all' || h.type === typeFilter)
   , [allHistory, selectedChild, typeFilter]);
 
+  const dateFiltered = useMemo(() => {
+    const s = new Date(startDate);
+    s.setHours(0, 0, 0, 0);
+    const e = new Date(endDate);
+    e.setHours(23, 59, 59, 999);
+    
+    return filtered.filter(h => {
+      const d = new Date(h.date);
+      return d >= s && d <= e;
+    });
+  }, [filtered, startDate, endDate]);
+
   const stats = useMemo(() => {
     const earned = filtered.filter(h => h.type === 'earn').reduce((sum, h) => sum + (h.points || 0), 0);
     const spent = filtered.filter(h => h.type === 'spend').reduce((sum, h) => sum + (h.points || 0), 0);
@@ -428,11 +440,11 @@ export default function HistoryView() {
         <CustomLegend childrenList={children} isAll={selectedChild === 'all'} hiddenItems={hiddenItems} toggleItem={toggleItem} />
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="empty-state"><div className="empty-emoji">📊</div><p>履歴がありません</p></div>
+      {dateFiltered.length === 0 ? (
+        <div className="empty-state"><div className="empty-emoji">📊</div><p>指定された期間の履歴がありません</p></div>
       ) : (
         <div className="admin-history-list" style={{ paddingBottom: 40 }}>
-          {filtered.slice(0, 100).map((h) => (
+          {dateFiltered.slice(0, 100).map((h) => (
             <div key={h.id} className="history-item card" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
               <span className="h-emoji" style={{ fontSize: '1.5rem' }}>{h.taskEmoji}</span>
               <div className="h-info" style={{ flex: 1 }}>
