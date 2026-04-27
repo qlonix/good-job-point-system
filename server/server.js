@@ -271,6 +271,66 @@ app.post('/api/import', (req, res) => {
   }
 });
 
+app.delete('/api/children/:id/history/:historyId', (req, res) => {
+  const data = load();
+  const child = data.children.find(c => c.id === req.params.id);
+  if (!child) return res.status(404).json({ error: 'Child not found' });
+
+  const hIdx = child.history.findIndex(h => h.id === req.params.historyId);
+  if (hIdx === -1) return res.status(404).json({ error: 'History not found' });
+
+  const item = child.history[hIdx];
+  const amt = item.points || 0;
+  
+  if (item.type === 'earn') {
+    child.points[item.category] = Math.max(0, (child.points[item.category] || 0) - amt);
+  } else if (item.type === 'spend') {
+    // If it was a reward exchange, it might have been deducted from multiple categories.
+    // For simplicity, we add it back to the category it was logged with.
+    child.points[item.category] = (child.points[item.category] || 0) + amt;
+  }
+
+  child.history.splice(hIdx, 1);
+  save(data);
+  res.json({ success: true, child });
+});
+
+app.put('/api/children/:id/history/:historyId', (req, res) => {
+  const { points } = req.body;
+  const data = load();
+  const child = data.children.find(c => c.id === req.params.id);
+  if (!child) return res.status(404).json({ error: 'Child not found' });
+
+  const hIdx = child.history.findIndex(h => h.id === req.params.historyId);
+  if (hIdx === -1) return res.status(404).json({ error: 'History not found' });
+
+  const item = child.history[hIdx];
+  const diff = points - item.points;
+
+  if (item.type === 'earn') {
+    child.points[item.category] = (child.points[item.category] || 0) + diff;
+  } else if (item.type === 'spend') {
+    child.points[item.category] = (child.points[item.category] || 0) - diff;
+  }
+
+  item.points = points;
+  save(data);
+  res.json({ success: true, child });
+});
+
+app.post('/api/points/resetAll', (req, res) => {
+  const data = load();
+  data.children.forEach(c => {
+    c.points = {};
+    if (data.categories) {
+      data.categories.forEach(cat => c.points[cat.id] = 0);
+    }
+    c.history = [];
+  });
+  save(data);
+  res.json({ success: true });
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`API Server running on port ${port}`);
