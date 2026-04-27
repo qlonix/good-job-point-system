@@ -22,5 +22,9 @@ ssh ${DEPLOY_USER}@${DEPLOY_HOST} "rm -rf ~/${DEPLOY_PATH}assets"
 
 echo "📤 Uploading files to ${DEPLOY_HOST}:${DEPLOY_PATH}..."
 scp -r dist/. ${DEPLOY_USER}@${DEPLOY_HOST}:~/${DEPLOY_PATH}
+scp -r server/. ${DEPLOY_USER}@${DEPLOY_HOST}:~/${DEPLOY_PATH}server
+
+echo "🔄 Restarting server..."
+ssh ${DEPLOY_USER}@${DEPLOY_HOST} "cd ~/${DEPLOY_PATH}server && npm install && pm2 restart gj-server || pm2 start server.js --name gj-server || node server.js &"
 
 echo "✅ Deployment complete!"
