@@ -56,7 +56,7 @@ export default function ApprovalModal({ actionLabel, actionEmoji, childName, onA
         {mode === 'select' && bioSupported && isBiometricRegistered() && (
           <div className="flex-col gap-12">
             <button className="btn btn-pink btn-full btn-lg" onClick={handleBiometric}>
-              🔐 顔や指で確認
+              🔐 端末の認証で確認
             </button>
             <button className="btn btn-purple btn-full" onClick={() => setMode('pin')}>
               🔢 パスコードで確認

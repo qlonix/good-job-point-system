@@ -31,7 +31,7 @@ export default function Settings() {
       const credential = await registerBiometric();
       if (credential) {
         setBioRegistered(true);
-        alert('生体認証を登録しました');
+        alert('端末の認証を登録しました');
       }
     } catch (e) {
       alert('登録に失敗しました。この端末ではサポートされていない可能性があります。');
@@ -39,7 +39,7 @@ export default function Settings() {
   };
 
   const handleClearBiometric = () => {
-    if (confirm('この端末の生体認証登録を解除しますか？')) {
+    if (confirm('この端末の認証登録を解除しますか？')) {
       clearBiometric();
       setBioRegistered(false);
       alert('解除しました');
@@ -109,22 +109,22 @@ export default function Settings() {
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
-        <h3 style={{ marginBottom: 12 }}>🔐 生体認証（顔・指紋）</h3>
+        <h3 style={{ marginBottom: 12 }}>🔐 端末の認証（顔・指紋・画面ロック）</h3>
         {!bioSupported ? (
           <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}>
-            この端末・ブラウザは生体認証（WebAuthn）をサポートしていません。
+            この端末・ブラウザは端末の認証（WebAuthn）をサポートしていません。
           </p>
         ) : bioRegistered ? (
           <div className="flex-col gap-8">
             <p style={{ fontSize: '0.85rem', color: '#2a7d56', fontWeight: 700 }}>
-              ✅ この端末に生体認証が登録されています
+              ✅ この端末の認証が登録されています
             </p>
-            <button className="btn btn-outline btn-full" onClick={handleClearBiometric}>生体認証を解除する</button>
+            <button className="btn btn-outline btn-full" onClick={handleClearBiometric}>端末の認証を解除する</button>
           </div>
         ) : (
           <div className="flex-col gap-8">
             <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}>
-              この端末に生体認証を登録すると、次回からパスコード入力の手間を省けます。
+              この端末の認証機能を登録すると、次回からパスコード入力の手間を省けます。
             </p>
             <button className="btn btn-admin btn-full" onClick={handleRegisterBiometric}>この端末を登録する</button>
           </div>

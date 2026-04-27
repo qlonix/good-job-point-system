@@ -58,7 +58,7 @@ export default function AdminLogin() {
       {mode === 'select' && (
         <div className="flex-col gap-12" style={{ width: '100%', maxWidth: 300 }}>
           <button className="btn btn-pink btn-full btn-lg" onClick={handleBiometric} style={{ padding: '16px' }}>
-            🔐 顔や指で確認
+            🔐 端末の認証で確認
           </button>
           <button className="btn btn-purple btn-full" onClick={() => setMode('pin')} style={{ padding: '12px' }}>
             🔢 パスコードで確認
