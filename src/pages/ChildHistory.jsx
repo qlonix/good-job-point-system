@@ -278,7 +278,7 @@ export default function ChildHistory() {
 
             <div style={{ overflowX: 'auto', marginBottom: 12 }}>
               <div style={{ width: `${zoomScale * 100}%`, minWidth: '100%', height: 220 }}>
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" key={`${startDate}-${endDate}-${chartPeriod}`}>
                   <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                     <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#888' }} axisLine={{ stroke: '#eee' }} tickLine={false} />
