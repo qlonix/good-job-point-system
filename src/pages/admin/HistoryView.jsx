@@ -174,8 +174,12 @@ export default function HistoryView() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [chartPeriod, setChartPeriod] = useState('day');
   
-  const today = new Date().toISOString().split('T')[0];
-  const defaultStart = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const getLocalDate = (date) => {
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+  };
+
+  const today = getLocalDate(new Date());
+  const defaultStart = getLocalDate(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000));
   const [startDate, setStartDate] = useState(defaultStart);
   const [endDate, setEndDate] = useState(today);
   const [zoomScale, setZoomScale] = useState(1.0);

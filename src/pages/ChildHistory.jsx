@@ -98,10 +98,14 @@ export default function ChildHistory() {
   const [view, setView] = useState('list');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   
+  const getLocalDate = (date) => {
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+  };
+
   // Chart state
   const [chartPeriod, setChartPeriod] = useState('day');
-  const todayStr = new Date().toISOString().split('T')[0];
-  const defaultStart = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const todayStr = getLocalDate(new Date());
+  const defaultStart = getLocalDate(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000));
   const [startDate, setStartDate] = useState(defaultStart);
   const [endDate, setEndDate] = useState(todayStr);
   const [zoomScale, setZoomScale] = useState(1.0);
