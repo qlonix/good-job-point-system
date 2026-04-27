@@ -254,7 +254,7 @@ export default function HistoryView() {
         const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
         if (touchRef.current.lastDist > 0) {
           const diff = touchRef.current.lastDist - dist;
-          const sensitivity = 0.005;
+          const sensitivity = 0.008;
           setZoom(prev => {
             const size = prev.end - prev.start;
             const center = prev.start + size / 2;
@@ -271,10 +271,12 @@ export default function HistoryView() {
         const x = e.touches[0].pageX;
         if (touchRef.current.lastX > 0) {
           const diff = touchRef.current.lastX - x;
-          const delta = diff * 0.002;
+          const delta = diff * 0.003; // Increased sensitivity
           setZoom(prev => {
             const size = prev.end - prev.start;
-            if (size >= 1) return prev;
+            if (size >= 1) return prev; 
+            // Only prevent default if we are actually panning a zoomed chart
+            if (Math.abs(diff) > 2) e.preventDefault(); 
             let ns = prev.start + delta;
             let ne = prev.end + delta;
             if (ns < 0) { ne -= ns; ns = 0; }
@@ -379,13 +381,23 @@ export default function HistoryView() {
       </div>
 
       <div className="card" style={{ marginBottom: 16, padding: '16px 8px' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 16, position: 'relative' }}>
           <button className={`btn btn-sm ${chartPeriod === 'day' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('day')}>日別</button>
           <button className={`btn btn-sm ${chartPeriod === 'week' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('week')}>週別</button>
           <button className={`btn btn-sm ${chartPeriod === 'month' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('month')}>月別</button>
+          
+          {(zoom.start > 0 || zoom.end < 1) && (
+            <button 
+              className="btn btn-sm btn-outline" 
+              style={{ position: 'absolute', right: 0, fontSize: '0.65rem', padding: '2px 6px', borderStyle: 'dashed', color: '#888' }}
+              onClick={() => setZoom({ start: 0, end: 1 })}
+            >
+              🔄 ズーム解除
+            </button>
+          )}
         </div>
         <div style={{ position: 'relative' }}>
-          <div ref={chartContainerRef} style={{ overflowX: 'hidden', paddingBottom: 8, touchAction: 'none' }}>
+          <div ref={chartContainerRef} style={{ overflowX: 'hidden', paddingBottom: 8, touchAction: 'pan-y' }}>
             <div style={{ width: '100%', height: 280 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={visibleData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
@@ -417,15 +429,6 @@ export default function HistoryView() {
               </ResponsiveContainer>
             </div>
           </div>
-          {(zoom.start > 0 || zoom.end < 1) && (
-            <button 
-              className="btn btn-sm btn-outline" 
-              style={{ position: 'absolute', top: -40, right: 0, fontSize: '0.7rem', padding: '2px 8px' }}
-              onClick={() => setZoom({ start: 0, end: 1 })}
-            >
-              ズーム解除
-            </button>
-          )}
         </div>
         <CustomLegend childrenList={children} isAll={selectedChild === 'all'} />
       </div>
