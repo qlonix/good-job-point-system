@@ -90,6 +90,11 @@ export default function ChildHistory() {
   const [zoomScale, setZoomScale] = useState(1.0);
   const [hiddenItems, setHiddenItems] = useState(new Set());
 
+  // 日付や期間変更時にズームをリセット
+  useEffect(() => {
+    setZoomScale(1.0);
+  }, [startDate, endDate, chartPeriod]);
+
   const child = getChildById(id);
   if (!child) return null; // Simplified for brevity as per store pattern
 
@@ -278,8 +283,12 @@ export default function ChildHistory() {
 
             <div style={{ overflowX: 'auto', marginBottom: 12 }}>
               <div style={{ width: `${zoomScale * 100}%`, minWidth: '100%', height: 220 }}>
-                <ResponsiveContainer width="100%" height="100%" key={`${startDate}-${endDate}-${chartPeriod}`}>
-                  <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart 
+                    key={`${startDate}-${endDate}-${chartPeriod}`}
+                    data={chartData} 
+                    margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                     <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#888' }} axisLine={{ stroke: '#eee' }} tickLine={false} />
                     <YAxis yAxisId="left" tick={{ fontSize: 9, fill: '#888' }} orientation="left" axisLine={false} tickLine={false} />

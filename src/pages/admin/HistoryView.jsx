@@ -181,10 +181,10 @@ export default function HistoryView() {
     if (cid) setSelectedChild(cid);
   }, [searchParams]);
 
-  // 期間切り替え時に倍率をリセット
+  // 期間や日付変更時に倍率をリセット
   useEffect(() => {
     setZoomScale(1.0);
-  }, [chartPeriod]);
+  }, [chartPeriod, startDate, endDate]);
 
   const allHistory = useMemo(() => 
     children.flatMap((c) =>
@@ -379,8 +379,12 @@ export default function HistoryView() {
         <div style={{ position: 'relative' }}>
           <div ref={chartContainerRef} style={{ overflowX: 'auto', paddingBottom: 8 }}>
             <div style={{ width: `${zoomScale * 100}%`, minWidth: '100%', height: 280, transition: 'width 0.3s ease-out' }}>
-              <ResponsiveContainer width="100%" height="100%" key={`${startDate}-${endDate}-${chartPeriod}-${selectedChild}`}>
-                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart 
+                  key={`${startDate}-${endDate}-${chartPeriod}-${selectedChild}`}
+                  data={chartData} 
+                  margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                   <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#888' }} axisLine={{ stroke: '#eee' }} tickLine={false} />
                   <YAxis yAxisId="left" tick={{ fontSize: 10, fill: '#888' }} orientation="left" axisLine={false} tickLine={false} />
