@@ -236,6 +236,13 @@ export async function resetAllPoints() {
   });
 }
 
+export async function resetChildPoints(childId) {
+  const res = await fetchApi(`/children/${childId}/points/reset`, { method: 'POST' });
+  const idx = localData.children.findIndex(c => c.id === childId);
+  if (idx !== -1) localData.children[idx] = res.child;
+  return res.child;
+}
+
 // ---------- Dynamic Categories & Emojis ----------
 
 export function getCategories() {

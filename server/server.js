@@ -331,6 +331,21 @@ app.post('/api/points/resetAll', (req, res) => {
   res.json({ success: true });
 });
 
+app.post('/api/children/:id/points/reset', (req, res) => {
+  const data = load();
+  const child = data.children.find(c => c.id === req.params.id);
+  if (!child) return res.status(404).json({ error: 'Child not found' });
+
+  child.points = {};
+  if (data.categories) {
+    data.categories.forEach(cat => child.points[cat.id] = 0);
+  }
+  child.history = [];
+  
+  save(data);
+  res.json({ success: true, child });
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`API Server running on port ${port}`);

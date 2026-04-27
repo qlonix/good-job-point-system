@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header';
-import { getPin, setPin, exportData, importData, resetData, resetAllPoints } from '../../data/store';
+import { getPin, setPin, exportData, importData, resetData, resetAllPoints, getChildren, resetChildPoints } from '../../data/store';
 import { isBiometricRegistered, clearBiometric, checkBiometricSupport, registerBiometric } from '../../utils/auth';
 
 const IS_WEBKIT = 'WebkitTextSecurity' in document.documentElement.style;
@@ -13,6 +13,8 @@ export default function Settings() {
   const [pinMsg, setPinMsg] = useState('');
   const [bioSupported, setBioSupported] = useState(false);
   const [bioRegistered, setBioRegistered] = useState(isBiometricRegistered());
+  const [resetChildId, setResetChildId] = useState('');
+  const children = getChildren();
 
   useEffect(() => {
     checkBiometricSupport().then(supported => setBioSupported(supported));
@@ -90,6 +92,16 @@ export default function Settings() {
     }
   };
 
+  const handleResetIndividual = async () => {
+    if (!resetChildId) return;
+    const child = children.find(c => c.id === resetChildId);
+    if (confirm(`${child.name}ちゃん/くんのポイントと履歴のみをゼロにしますか？\n\nこの操作は取り消せません！`)) {
+      await resetChildPoints(resetChildId);
+      alert(`${child.name}ちゃん/くんのデータをリセットしました`);
+      setResetChildId('');
+    }
+  };
+
   return (
     <div className="page admin-page">
       <Header title="⚙️ 設定" showBack />
@@ -137,8 +149,32 @@ export default function Settings() {
           <button className="btn btn-outline btn-full" onClick={handleExport}>📤 データをエクスポート</button>
           <button className="btn btn-outline btn-full" onClick={handleImport}>📥 データをインポート</button>
           <div style={{ height: 16 }}></div>
-          <button className="btn btn-danger btn-full" onClick={handleResetPoints}>⚠️ ポイントと履歴のみをリセット</button>
-          <button className="btn btn-danger btn-full" onClick={handleReset} style={{ opacity: 0.5 }}>🗑 すべてのデータをリセット</button>
+          <button className="btn btn-danger btn-full" onClick={handleResetPoints}>⚠️ 全員のポイントをリセット</button>
+          
+          <div style={{ border: '1px solid #eee', padding: 12, borderRadius: 8, marginTop: 8 }}>
+            <p style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 8 }}>🙎‍♂️ 特定の人のみリセット</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <select 
+                className="input" 
+                style={{ flex: 1, fontSize: '0.9rem' }}
+                value={resetChildId}
+                onChange={(e) => setResetChildId(e.target.value)}
+              >
+                <option value="">子どもを選択...</option>
+                {children.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <button 
+                className="btn btn-danger" 
+                style={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}
+                disabled={!resetChildId}
+                onClick={handleResetIndividual}
+              >リセット</button>
+            </div>
+          </div>
+
+          <button className="btn btn-danger btn-full" onClick={handleReset} style={{ opacity: 0.5, marginTop: 16 }}>🗑 すべてのデータをリセット</button>
         </div>
       </div>
     </div>
