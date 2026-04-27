@@ -106,23 +106,30 @@ const CustomLegend = ({ childrenList, isAll, hiddenItems, toggleItem }) => {
   );
 };
 
-const generatePeriods = (period, count) => {
+const generatePeriods = (period, startDate, endDate) => {
   const periods = [];
-  const now = new Date();
+  let curr = new Date(startDate);
+  const end = new Date(endDate);
+  
   if (period === 'day') {
-    for (let i = count - 1; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-      periods.push({ label: `${d.getMonth() + 1}/${d.getDate()}`, start: d.getTime() });
+    curr.setHours(0, 0, 0, 0);
+    while (curr <= end) {
+      periods.push({ label: `${curr.getMonth() + 1}/${curr.getDate()}`, start: curr.getTime() });
+      curr.setDate(curr.getDate() + 1);
     }
   } else if (period === 'week') {
-    for (let i = count - 1; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() - (i * 7));
-      periods.push({ label: `${d.getMonth() + 1}/${d.getDate()}〜`, start: d.getTime() });
+    curr.setDate(curr.getDate() - curr.getDay());
+    curr.setHours(0, 0, 0, 0);
+    while (curr <= end) {
+      periods.push({ label: `${curr.getMonth() + 1}/${curr.getDate()}〜`, start: curr.getTime() });
+      curr.setDate(curr.getDate() + 7);
     }
   } else if (period === 'month') {
-    for (let i = count - 1; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      periods.push({ label: `${d.getFullYear()}/${d.getMonth() + 1}`, start: d.getTime() });
+    curr.setDate(1);
+    curr.setHours(0, 0, 0, 0);
+    while (curr <= end) {
+      periods.push({ label: `${curr.getFullYear()}/${curr.getMonth() + 1}`, start: curr.getTime() });
+      curr.setMonth(curr.getMonth() + 1);
     }
   }
   return periods;
@@ -149,7 +156,11 @@ export default function HistoryView() {
   const [selectedChild, setSelectedChild] = useState(searchParams.get('childId') || 'all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [chartPeriod, setChartPeriod] = useState('day');
-  const [lookbackCount, setLookbackCount] = useState(14);
+  
+  const today = new Date().toISOString().split('T')[0];
+  const defaultStart = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const [startDate, setStartDate] = useState(defaultStart);
+  const [endDate, setEndDate] = useState(today);
   const [zoomScale, setZoomScale] = useState(1.0);
   const [editingItem, setEditingItem] = useState(null); // { childId, historyId, points }
   const [addingItem, setAddingItem] = useState(false);
@@ -170,11 +181,8 @@ export default function HistoryView() {
     if (cid) setSelectedChild(cid);
   }, [searchParams]);
 
-  // 期間切り替え時にデフォルト件数を設定
+  // 期間切り替え時に倍率をリセット
   useEffect(() => {
-    if (chartPeriod === 'day') setLookbackCount(14);
-    else if (chartPeriod === 'week') setLookbackCount(8);
-    else if (chartPeriod === 'month') setLookbackCount(6);
     setZoomScale(1.0);
   }, [chartPeriod]);
 
@@ -197,7 +205,7 @@ export default function HistoryView() {
   }, [filtered]);
 
   const chartData = useMemo(() => {
-    const periods = generatePeriods(chartPeriod, lookbackCount);
+    const periods = generatePeriods(chartPeriod, startDate, endDate);
     const firstPeriodStart = periods.length > 0 ? periods[0].start : 0;
     
     const dataMap = {};
@@ -356,36 +364,16 @@ export default function HistoryView() {
             <button className={`btn btn-sm ${chartPeriod === 'month' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('month')}>月別</button>
           </div>
           <div style={{ width: 1, height: 20, background: '#eee' }}></div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: '0.75rem', color: '#888' }}>期間:</span>
-            <select 
-              className="input" 
-              style={{ padding: '2px 8px', fontSize: '0.8rem', width: 'auto' }} 
-              value={lookbackCount} 
-              onChange={e => setLookbackCount(parseInt(e.target.value))}
-            >
-              {chartPeriod === 'day' ? (
-                <>
-                  <option value={7}>7日</option>
-                  <option value={14}>14日</option>
-                  <option value={30}>30日</option>
-                  <option value={90}>90日</option>
-                </>
-              ) : chartPeriod === 'week' ? (
-                <>
-                  <option value={4}>4週</option>
-                  <option value={8}>8週</option>
-                  <option value={12}>12週</option>
-                  <option value={24}>24週</option>
-                </>
-              ) : (
-                <>
-                  <option value={6}>6ヶ月</option>
-                  <option value={12}>12ヶ月</option>
-                  <option value={24}>24ヶ月</option>
-                </>
-              )}
-            </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem' }}>
+            <input 
+              type="date" className="input" style={{ padding: '2px 4px', fontSize: '0.75rem', width: 'auto' }}
+              value={startDate} onChange={e => setStartDate(e.target.value)}
+            />
+            <span>〜</span>
+            <input 
+              type="date" className="input" style={{ padding: '2px 4px', fontSize: '0.75rem', width: 'auto' }}
+              value={endDate} onChange={e => setEndDate(e.target.value)}
+            />
           </div>
         </div>
         <div style={{ position: 'relative' }}>
