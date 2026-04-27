@@ -54,19 +54,53 @@ const CustomTooltip = ({ active, payload, label, childrenList, isAll }) => {
   return null;
 };
 
-const CustomLegend = ({ childrenList, isAll }) => {
-  if (!isAll) return <Legend wrapperStyle={{ fontSize: '0.8rem', marginTop: '10px' }} />;
+const CustomLegend = ({ childrenList, isAll, hiddenItems, toggleItem }) => {
+  const isHidden = (id) => hiddenItems.has(id);
+  
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '12px', marginTop: '15px', fontSize: '0.75rem', padding: '0 10px' }}>
-      {childrenList.map((c, i) => (
-        <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-          <div style={{ width: '10px', height: '10px', backgroundColor: CHILD_COLORS[i % CHILD_COLORS.length], borderRadius: '2px' }}></div>
-          <span style={{ color: '#444', fontWeight: 'bold' }}>{c.name}</span>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', marginTop: '10px' }}>
+      {isAll && (
+        <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '12px', fontSize: '0.8rem', padding: '0 10px' }}>
+          {childrenList.map((c, i) => (
+            <div 
+              key={c.id} 
+              style={{ 
+                display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
+                opacity: isHidden(c.id) ? 0.3 : 1,
+                transition: 'opacity 0.2s',
+                padding: '4px 8px',
+                borderRadius: '12px',
+                background: isHidden(c.id) ? '#eee' : 'rgba(0,0,0,0.03)'
+              }}
+              onClick={() => toggleItem(c.id)}
+            >
+              <div style={{ width: '10px', height: '10px', backgroundColor: CHILD_COLORS[i % CHILD_COLORS.length], borderRadius: '2px' }}></div>
+              <span style={{ color: '#444', fontWeight: 'bold' }}>{c.name}</span>
+            </div>
+          ))}
         </div>
-      ))}
-      <div style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '15px', marginTop: '8px', color: '#888', fontSize: '0.7rem' }}>
-        <span>📊 棒:獲得 / 使用</span>
-        <span>📈 線:使用可能ポイント</span>
+      )}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', color: '#666', fontSize: '0.75rem', marginTop: '5px' }}>
+        <span 
+          style={{ 
+            cursor: 'pointer', opacity: isHidden('bars') ? 0.3 : 1, 
+            display: 'flex', alignItems: 'center', gap: '4px',
+            padding: '2px 8px', borderRadius: '4px', background: isHidden('bars') ? 'transparent' : '#f9f9f9'
+          }}
+          onClick={() => toggleItem('bars')}
+        >
+          📊 棒:獲得 / 使用
+        </span>
+        <span 
+          style={{ 
+            cursor: 'pointer', opacity: isHidden('cumulative') ? 0.3 : 1,
+            display: 'flex', alignItems: 'center', gap: '4px',
+            padding: '2px 8px', borderRadius: '4px', background: isHidden('cumulative') ? 'transparent' : '#f9f9f9'
+          }}
+          onClick={() => toggleItem('cumulative')}
+        >
+          📈 線:使用可能ポイント
+        </span>
       </div>
     </div>
   );
@@ -204,8 +238,31 @@ export default function HistoryView() {
   }, [filtered, chartPeriod, children]);
 
   const [zoom, setZoom] = useState({ start: 0, end: 1 });
+  const [hiddenItems, setHiddenItems] = useState(new Set());
   const chartContainerRef = useRef(null);
-  const touchRef = useRef({ lastDist: 0, lastX: 0 });
+
+  const toggleItem = (id) => {
+    setHiddenItems(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleZoom = (direction) => {
+    setZoom(prev => {
+      const size = prev.end - prev.start;
+      const zoomFactor = direction === 'in' ? 0.7 : 1.4;
+      const newSize = Math.max(0.1, Math.min(1.0, size * zoomFactor));
+      const center = prev.start + size / 2;
+      let ns = center - newSize / 2;
+      let ne = center + newSize / 2;
+      if (ns < 0) { ne -= ns; ns = 0; }
+      if (ne > 1) { ns -= (ne - 1); ne = 1; }
+      return { start: Math.max(0, ns), end: Math.min(1, ne) };
+    });
+  };
 
   const visibleData = useMemo(() => {
     if (chartData.length <= 5) return chartData;
@@ -214,94 +271,9 @@ export default function HistoryView() {
     return chartData.slice(Math.max(0, startIdx), Math.min(chartData.length, endIdx + 1));
   }, [chartData, zoom]);
 
-  useEffect(() => {
-    const el = chartContainerRef.current;
-    if (!el) return;
+  // Removed wheel/touch listeners as zoom is now button-based
 
-    const handleWheel = (e) => {
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-        e.preventDefault();
-        const delta = e.deltaY;
-        const sensitivity = 0.001;
-        setZoom(prev => {
-          const size = prev.end - prev.start;
-          const center = prev.start + size / 2;
-          const newSize = Math.max(0.1, Math.min(1.0, size * (1 + delta * sensitivity)));
-          let ns = center - newSize / 2;
-          let ne = center + newSize / 2;
-          if (ns < 0) { ne -= ns; ns = 0; }
-          if (ne > 1) { ns -= (ne - 1); ne = 1; }
-          return { start: Math.max(0, ns), end: Math.min(1, ne) };
-        });
-      } else {
-        // Horizontal pan
-        e.preventDefault();
-        const delta = e.deltaX * 0.002;
-        setZoom(prev => {
-          const size = prev.end - prev.start;
-          let ns = prev.start + delta;
-          let ne = prev.end + delta;
-          if (ns < 0) { ne -= ns; ns = 0; }
-          if (ne > 1) { ns -= (ne - 1); ne = 1; }
-          return { start: ns, end: ne };
-        });
-      }
-    };
 
-    const handleTouch = (e) => {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-        if (touchRef.current.lastDist > 0) {
-          const diff = touchRef.current.lastDist - dist;
-          const sensitivity = 0.008;
-          setZoom(prev => {
-            const size = prev.end - prev.start;
-            const center = prev.start + size / 2;
-            const newSize = Math.max(0.1, Math.min(1.0, size * (1 + diff * sensitivity)));
-            let ns = center - newSize / 2;
-            let ne = center + newSize / 2;
-            if (ns < 0) { ne -= ns; ns = 0; }
-            if (ne > 1) { ns -= (ne - 1); ne = 1; }
-            return { start: Math.max(0, ns), end: Math.min(1, ne) };
-          });
-        }
-        touchRef.current.lastDist = dist;
-      } else if (e.touches.length === 1) {
-        const x = e.touches[0].pageX;
-        if (touchRef.current.lastX > 0) {
-          const diff = touchRef.current.lastX - x;
-          const delta = diff * 0.003; // Increased sensitivity
-          setZoom(prev => {
-            const size = prev.end - prev.start;
-            if (size >= 1) return prev; 
-            // Only prevent default if we are actually panning a zoomed chart
-            if (Math.abs(diff) > 2) e.preventDefault(); 
-            let ns = prev.start + delta;
-            let ne = prev.end + delta;
-            if (ns < 0) { ne -= ns; ns = 0; }
-            if (ne > 1) { ns -= (ne - 1); ne = 1; }
-            return { start: ns, end: ne };
-          });
-        }
-        touchRef.current.lastX = x;
-      }
-    };
-
-    const handleTouchEnd = () => {
-      touchRef.current.lastDist = 0;
-      touchRef.current.lastX = 0;
-    };
-
-    el.addEventListener('wheel', handleWheel, { passive: false });
-    el.addEventListener('touchmove', handleTouch, { passive: false });
-    el.addEventListener('touchend', handleTouchEnd);
-    return () => {
-      el.removeEventListener('wheel', handleWheel);
-      el.removeEventListener('touchmove', handleTouch);
-      el.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [chartData.length]);
 
   const handleDelete = async (childId, historyId) => {
     if (!confirm('この履歴を削除しますか？\n(削除すると、その分のポイントも自動的に調整されます)')) return;
@@ -381,23 +353,20 @@ export default function HistoryView() {
       </div>
 
       <div className="card" style={{ marginBottom: 16, padding: '16px 8px' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 16, position: 'relative' }}>
-          <button className={`btn btn-sm ${chartPeriod === 'day' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('day')}>日別</button>
-          <button className={`btn btn-sm ${chartPeriod === 'week' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('week')}>週別</button>
-          <button className={`btn btn-sm ${chartPeriod === 'month' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('month')}>月別</button>
-          
-          {(zoom.start > 0 || zoom.end < 1) && (
-            <button 
-              className="btn btn-sm btn-outline" 
-              style={{ position: 'absolute', right: 0, fontSize: '0.65rem', padding: '2px 6px', borderStyle: 'dashed', color: '#888' }}
-              onClick={() => setZoom({ start: 0, end: 1 })}
-            >
-              🔄 ズーム解除
-            </button>
-          )}
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button className={`btn btn-sm ${chartPeriod === 'day' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('day')}>日別</button>
+            <button className={`btn btn-sm ${chartPeriod === 'week' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('week')}>週別</button>
+            <button className={`btn btn-sm ${chartPeriod === 'month' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('month')}>月別</button>
+          </div>
+          <div style={{ width: 1, height: 20, background: '#eee' }}></div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button className="btn btn-sm btn-outline" style={{ minWidth: 36 }} onClick={() => handleZoom('in')} title="拡大">➕</button>
+            <button className="btn btn-sm btn-outline" style={{ minWidth: 36 }} onClick={() => handleZoom('out')} title="縮小">➖</button>
+          </div>
         </div>
         <div style={{ position: 'relative' }}>
-          <div ref={chartContainerRef} style={{ overflowX: 'hidden', paddingBottom: 8, touchAction: 'pan-y' }}>
+          <div ref={chartContainerRef} style={{ overflowX: 'hidden', paddingBottom: 8 }}>
             <div style={{ width: '100%', height: 280 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={visibleData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
@@ -408,21 +377,21 @@ export default function HistoryView() {
                   <Tooltip content={<CustomTooltip childrenList={children} isAll={selectedChild === 'all'} />} />
                   {selectedChild === 'all' ? (
                     <>
-                      {typeFilter !== 'spend' && children.map((c, i) => (
-                        <Bar key={`earn_${c.id}`} yAxisId="left" dataKey={`${c.id}_earn`} stackId="earn" fill={CHILD_COLORS[i % CHILD_COLORS.length]} fillOpacity={0.6} />
+                      {typeFilter !== 'spend' && !hiddenItems.has('bars') && children.map((c, i) => (
+                        <Bar key={`earn_${c.id}`} yAxisId="left" dataKey={`${c.id}_earn`} stackId="earn" fill={CHILD_COLORS[i % CHILD_COLORS.length]} fillOpacity={0.6} hide={hiddenItems.has(c.id)} isAnimationActive={false} />
                       ))}
-                      {typeFilter !== 'earn' && children.map((c, i) => (
-                        <Bar key={`spend_${c.id}`} yAxisId="left" dataKey={`${c.id}_spend`} stackId="spend" fill={CHILD_COLORS[i % CHILD_COLORS.length]} fillOpacity={0.2} />
+                      {typeFilter !== 'earn' && !hiddenItems.has('bars') && children.map((c, i) => (
+                        <Bar key={`spend_${c.id}`} yAxisId="left" dataKey={`${c.id}_spend`} stackId="spend" fill={CHILD_COLORS[i % CHILD_COLORS.length]} fillOpacity={0.2} hide={hiddenItems.has(c.id)} isAnimationActive={false} />
                       ))}
-                      {children.map((c, i) => (
-                        <Line key={`cum_${c.id}`} yAxisId="right" type="monotone" dataKey={`${c.id}_cumulative`} stroke={CHILD_COLORS[i % CHILD_COLORS.length]} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
+                      {!hiddenItems.has('cumulative') && children.map((c, i) => (
+                        <Line key={`cum_${c.id}`} yAxisId="right" type="monotone" dataKey={`${c.id}_cumulative`} stroke={CHILD_COLORS[i % CHILD_COLORS.length]} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} hide={hiddenItems.has(c.id)} isAnimationActive={false} />
                       ))}
                     </>
                   ) : (
                     <>
-                      {typeFilter !== 'spend' && <Bar yAxisId="left" dataKey="earn" name="獲得" fill="var(--pink-dark)" fillOpacity={0.6} radius={[4, 4, 0, 0]} />}
-                      {typeFilter !== 'earn' && <Bar yAxisId="left" dataKey="spend" name="使用" fill="#8884d8" fillOpacity={0.6} radius={[4, 4, 0, 0]} />}
-                      <Line yAxisId="right" type="monotone" dataKey="cumulative" name="使用可能ポイント" stroke="#ff7300" strokeWidth={3} dot={{ r: 4, fill: '#ff7300', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+                      {typeFilter !== 'spend' && !hiddenItems.has('bars') && <Bar yAxisId="left" dataKey="earn" name="獲得" fill="var(--pink-dark)" fillOpacity={0.6} radius={[4, 4, 0, 0]} isAnimationActive={false} />}
+                      {typeFilter !== 'earn' && !hiddenItems.has('bars') && <Bar yAxisId="left" dataKey="spend" name="使用" fill="#8884d8" fillOpacity={0.6} radius={[4, 4, 0, 0]} isAnimationActive={false} />}
+                      {!hiddenItems.has('cumulative') && <Line yAxisId="right" type="monotone" dataKey="cumulative" name="使用可能ポイント" stroke="#ff7300" strokeWidth={3} dot={{ r: 4, fill: '#ff7300', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} isAnimationActive={false} />}
                     </>
                   )}
                 </ComposedChart>
@@ -430,7 +399,18 @@ export default function HistoryView() {
             </div>
           </div>
         </div>
-        <CustomLegend childrenList={children} isAll={selectedChild === 'all'} />
+        {(zoom.start > 0 || zoom.end < 1) && (
+          <div style={{ textAlign: 'center', marginTop: 8 }}>
+            <button 
+              className="btn btn-sm btn-outline" 
+              style={{ fontSize: '0.75rem', padding: '4px 12px', borderStyle: 'dashed', color: '#888' }}
+              onClick={() => setZoom({ start: 0, end: 1 })}
+            >
+              🔄 ズーム解除（全体表示）
+            </button>
+          </div>
+        )}
+        <CustomLegend childrenList={children} isAll={selectedChild === 'all'} hiddenItems={hiddenItems} toggleItem={toggleItem} />
       </div>
 
       {filtered.length === 0 ? (
