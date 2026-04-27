@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import Header from '../../components/Header';
 import { getChildren, deleteHistoryItem, updateHistoryItem, addManualHistory, getCategories } from '../../data/store';
@@ -42,7 +42,7 @@ const CustomTooltip = ({ active, payload, label, childrenList, isAll }) => {
                   <span style={{ fontWeight: 'bold' }}>-{payload.find(p => p.dataKey === 'spend')?.value || 0} pt</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #eee' }}>
-                  <span style={{ color: '#ff7300', fontWeight: 'bold' }}>累計獲得:</span>
+                  <span style={{ color: '#ff7300', fontWeight: 'bold' }}>使用可能:</span>
                   <span style={{ fontWeight: 'bold' }}>{payload.find(p => p.dataKey === 'cumulative')?.value || 0} pt</span>
                 </div>
              </div>
@@ -66,7 +66,7 @@ const CustomLegend = ({ childrenList, isAll }) => {
       ))}
       <div style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '15px', marginTop: '8px', color: '#888', fontSize: '0.7rem' }}>
         <span>📊 棒:獲得 / 使用</span>
-        <span>📈 線:累計獲得</span>
+        <span>📈 線:使用可能ポイント</span>
       </div>
     </div>
   );
@@ -170,12 +170,11 @@ export default function HistoryView() {
     children.forEach(c => baseChild[c.id] = 0);
 
     filtered.forEach(h => {
-      if (h.type === 'earn') {
-        const dTime = new Date(h.date).getTime();
-        if (dTime < firstPeriodStart) {
-          baseTotal += (h.points || 0);
-          baseChild[h.childId] += (h.points || 0);
-        }
+      const dTime = new Date(h.date).getTime();
+      if (dTime < firstPeriodStart) {
+        const amt = h.type === 'earn' ? (h.points || 0) : -(h.points || 0);
+        baseTotal += amt;
+        baseChild[h.childId] += amt;
       }
       const pKey = getPeriodKey(h.date, chartPeriod);
       if (dataMap[pKey]) {
@@ -191,16 +190,116 @@ export default function HistoryView() {
       const row = dataMap[p.label];
       
       runningTotal += row.earn;
+      runningTotal -= row.spend;
       row.cumulative = runningTotal;
       
       children.forEach(c => {
         runningChild[c.id] += row[`${c.id}_earn`];
+        runningChild[c.id] -= row[`${c.id}_spend`];
         row[`${c.id}_cumulative`] = runningChild[c.id];
       });
       
       return row;
     });
   }, [filtered, chartPeriod, children]);
+
+  const [zoom, setZoom] = useState({ start: 0, end: 1 });
+  const chartContainerRef = useRef(null);
+  const touchRef = useRef({ lastDist: 0, lastX: 0 });
+
+  const visibleData = useMemo(() => {
+    if (chartData.length <= 5) return chartData;
+    const startIdx = Math.floor(zoom.start * (chartData.length - 1));
+    const endIdx = Math.ceil(zoom.end * (chartData.length - 1));
+    return chartData.slice(Math.max(0, startIdx), Math.min(chartData.length, endIdx + 1));
+  }, [chartData, zoom]);
+
+  useEffect(() => {
+    const el = chartContainerRef.current;
+    if (!el) return;
+
+    const handleWheel = (e) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        const delta = e.deltaY;
+        const sensitivity = 0.001;
+        setZoom(prev => {
+          const size = prev.end - prev.start;
+          const center = prev.start + size / 2;
+          const newSize = Math.max(0.1, Math.min(1.0, size * (1 + delta * sensitivity)));
+          let ns = center - newSize / 2;
+          let ne = center + newSize / 2;
+          if (ns < 0) { ne -= ns; ns = 0; }
+          if (ne > 1) { ns -= (ne - 1); ne = 1; }
+          return { start: Math.max(0, ns), end: Math.min(1, ne) };
+        });
+      } else {
+        // Horizontal pan
+        e.preventDefault();
+        const delta = e.deltaX * 0.002;
+        setZoom(prev => {
+          const size = prev.end - prev.start;
+          let ns = prev.start + delta;
+          let ne = prev.end + delta;
+          if (ns < 0) { ne -= ns; ns = 0; }
+          if (ne > 1) { ns -= (ne - 1); ne = 1; }
+          return { start: ns, end: ne };
+        });
+      }
+    };
+
+    const handleTouch = (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+        if (touchRef.current.lastDist > 0) {
+          const diff = touchRef.current.lastDist - dist;
+          const sensitivity = 0.005;
+          setZoom(prev => {
+            const size = prev.end - prev.start;
+            const center = prev.start + size / 2;
+            const newSize = Math.max(0.1, Math.min(1.0, size * (1 + diff * sensitivity)));
+            let ns = center - newSize / 2;
+            let ne = center + newSize / 2;
+            if (ns < 0) { ne -= ns; ns = 0; }
+            if (ne > 1) { ns -= (ne - 1); ne = 1; }
+            return { start: Math.max(0, ns), end: Math.min(1, ne) };
+          });
+        }
+        touchRef.current.lastDist = dist;
+      } else if (e.touches.length === 1) {
+        const x = e.touches[0].pageX;
+        if (touchRef.current.lastX > 0) {
+          const diff = touchRef.current.lastX - x;
+          const delta = diff * 0.002;
+          setZoom(prev => {
+            const size = prev.end - prev.start;
+            if (size >= 1) return prev;
+            let ns = prev.start + delta;
+            let ne = prev.end + delta;
+            if (ns < 0) { ne -= ns; ns = 0; }
+            if (ne > 1) { ns -= (ne - 1); ne = 1; }
+            return { start: ns, end: ne };
+          });
+        }
+        touchRef.current.lastX = x;
+      }
+    };
+
+    const handleTouchEnd = () => {
+      touchRef.current.lastDist = 0;
+      touchRef.current.lastX = 0;
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    el.addEventListener('touchmove', handleTouch, { passive: false });
+    el.addEventListener('touchend', handleTouchEnd);
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+      el.removeEventListener('touchmove', handleTouch);
+      el.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [chartData.length]);
 
   const handleDelete = async (childId, historyId) => {
     if (!confirm('この履歴を削除しますか？\n(削除すると、その分のポイントも自動的に調整されます)')) return;
@@ -285,37 +384,48 @@ export default function HistoryView() {
           <button className={`btn btn-sm ${chartPeriod === 'week' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('week')}>週別</button>
           <button className={`btn btn-sm ${chartPeriod === 'month' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('month')}>月別</button>
         </div>
-        <div style={{ overflowX: 'auto', paddingBottom: 8 }}>
-          <div style={{ minWidth: 600, height: 280 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#888' }} axisLine={{ stroke: '#eee' }} tickLine={false} />
-                <YAxis yAxisId="left" tick={{ fontSize: 10, fill: '#888' }} orientation="left" axisLine={false} tickLine={false} />
-                <YAxis yAxisId="right" tick={{ fontSize: 10, fill: '#888' }} orientation="right" axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomTooltip childrenList={children} isAll={selectedChild === 'all'} />} />
-                {selectedChild === 'all' ? (
-                  <>
-                    {typeFilter !== 'spend' && children.map((c, i) => (
-                      <Bar key={`earn_${c.id}`} yAxisId="left" dataKey={`${c.id}_earn`} stackId="earn" fill={CHILD_COLORS[i % CHILD_COLORS.length]} />
-                    ))}
-                    {typeFilter !== 'earn' && children.map((c, i) => (
-                      <Bar key={`spend_${c.id}`} yAxisId="left" dataKey={`${c.id}_spend`} stackId="spend" fill={CHILD_COLORS[i % CHILD_COLORS.length]} fillOpacity={0.3} />
-                    ))}
-                    {children.map((c, i) => (
-                      <Line key={`cum_${c.id}`} yAxisId="right" type="monotone" dataKey={`${c.id}_cumulative`} stroke={CHILD_COLORS[i % CHILD_COLORS.length]} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
-                    ))}
-                  </>
-                ) : (
-                  <>
-                    {typeFilter !== 'spend' && <Bar yAxisId="left" dataKey="earn" name="獲得" fill="var(--pink-dark)" radius={[4, 4, 0, 0]} />}
-                    {typeFilter !== 'earn' && <Bar yAxisId="left" dataKey="spend" name="使用" fill="#8884d8" radius={[4, 4, 0, 0]} />}
-                    <Line yAxisId="right" type="monotone" dataKey="cumulative" name="累計獲得" stroke="#ff7300" strokeWidth={3} dot={{ r: 4, fill: '#ff7300', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
-                  </>
-                )}
-              </ComposedChart>
-            </ResponsiveContainer>
+        <div style={{ position: 'relative' }}>
+          <div ref={chartContainerRef} style={{ overflowX: 'hidden', paddingBottom: 8, touchAction: 'none' }}>
+            <div style={{ width: '100%', height: 280 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={visibleData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#888' }} axisLine={{ stroke: '#eee' }} tickLine={false} />
+                  <YAxis yAxisId="left" tick={{ fontSize: 10, fill: '#888' }} orientation="left" axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="right" tick={{ fontSize: 10, fill: '#888' }} orientation="right" axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip childrenList={children} isAll={selectedChild === 'all'} />} />
+                  {selectedChild === 'all' ? (
+                    <>
+                      {typeFilter !== 'spend' && children.map((c, i) => (
+                        <Bar key={`earn_${c.id}`} yAxisId="left" dataKey={`${c.id}_earn`} stackId="earn" fill={CHILD_COLORS[i % CHILD_COLORS.length]} fillOpacity={0.6} />
+                      ))}
+                      {typeFilter !== 'earn' && children.map((c, i) => (
+                        <Bar key={`spend_${c.id}`} yAxisId="left" dataKey={`${c.id}_spend`} stackId="spend" fill={CHILD_COLORS[i % CHILD_COLORS.length]} fillOpacity={0.2} />
+                      ))}
+                      {children.map((c, i) => (
+                        <Line key={`cum_${c.id}`} yAxisId="right" type="monotone" dataKey={`${c.id}_cumulative`} stroke={CHILD_COLORS[i % CHILD_COLORS.length]} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      {typeFilter !== 'spend' && <Bar yAxisId="left" dataKey="earn" name="獲得" fill="var(--pink-dark)" fillOpacity={0.6} radius={[4, 4, 0, 0]} />}
+                      {typeFilter !== 'earn' && <Bar yAxisId="left" dataKey="spend" name="使用" fill="#8884d8" fillOpacity={0.6} radius={[4, 4, 0, 0]} />}
+                      <Line yAxisId="right" type="monotone" dataKey="cumulative" name="使用可能ポイント" stroke="#ff7300" strokeWidth={3} dot={{ r: 4, fill: '#ff7300', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+                    </>
+                  )}
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
           </div>
+          {(zoom.start > 0 || zoom.end < 1) && (
+            <button 
+              className="btn btn-sm btn-outline" 
+              style={{ position: 'absolute', top: -40, right: 0, fontSize: '0.7rem', padding: '2px 8px' }}
+              onClick={() => setZoom({ start: 0, end: 1 })}
+            >
+              ズーム解除
+            </button>
+          )}
         </div>
         <CustomLegend childrenList={children} isAll={selectedChild === 'all'} />
       </div>
