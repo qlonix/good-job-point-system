@@ -226,21 +226,28 @@ export async function resetData() {
 }
 
 export async function resetAllPoints() {
-  await fetchApi('/points/resetAll', { method: 'POST' });
-  const cats = getCategories();
-  localData.children.forEach(child => {
+  const data = await fetchApi('/data');
+  const cats = data.categories || [];
+  data.children.forEach(child => {
     const p = {};
     cats.forEach(c => p[c.id] = 0);
     child.points = p;
     child.history = [];
   });
+  await importData(JSON.stringify(data));
 }
 
 export async function resetChildPoints(childId) {
-  const res = await fetchApi(`/children/${childId}/points/reset`, { method: 'POST' });
-  const idx = localData.children.findIndex(c => c.id === childId);
-  if (idx !== -1) localData.children[idx] = res.child;
-  return res.child;
+  const data = await fetchApi('/data');
+  const child = data.children.find(c => String(c.id) === String(childId));
+  if (child) {
+    const cats = data.categories || [];
+    const p = {};
+    cats.forEach(c => p[c.id] = 0);
+    child.points = p;
+    child.history = [];
+    await importData(JSON.stringify(data));
+  }
 }
 
 // ---------- Dynamic Categories & Emojis ----------
