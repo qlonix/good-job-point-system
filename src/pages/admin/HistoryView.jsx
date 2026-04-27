@@ -3,7 +3,7 @@ import { useSearchParams, useLocation } from 'react-router-dom';
 import Header from '../../components/Header';
 import { getChildren, deleteHistoryItem, updateHistoryItem, addManualHistory, getCategories } from '../../data/store';
 import { renderRuby } from '../../utils/format';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 
 const CHILD_COLORS = ['#ff8fab', '#84b6f4', '#fdfd96', '#fdcae1', '#ffb347', '#77dd77', '#c2b280'];
 
@@ -12,20 +12,18 @@ const generatePeriods = (period) => {
   const now = new Date();
   if (period === 'day') {
     for (let i = 13; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      periods.push(`${d.getMonth() + 1}/${d.getDate()}`);
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      periods.push({ label: `${d.getMonth() + 1}/${d.getDate()}`, start: d.getTime() });
     }
   } else if (period === 'week') {
     for (let i = 7; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - d.getDay() - (i * 7));
-      periods.push(`${d.getMonth() + 1}/${d.getDate()}〜`);
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() - (i * 7));
+      periods.push({ label: `${d.getMonth() + 1}/${d.getDate()}〜`, start: d.getTime() });
     }
   } else if (period === 'month') {
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      periods.push(`${d.getFullYear()}/${d.getMonth() + 1}`);
+      periods.push({ label: `${d.getFullYear()}/${d.getMonth() + 1}`, start: d.getTime() });
     }
   }
   return periods;
@@ -91,16 +89,29 @@ export default function HistoryView() {
 
   const chartData = useMemo(() => {
     const periods = generatePeriods(chartPeriod);
+    const firstPeriodStart = periods.length > 0 ? periods[0].start : 0;
+    
     const dataMap = {};
     periods.forEach(p => {
-      dataMap[p] = { name: p, earn: 0, spend: 0 };
+      dataMap[p.label] = { name: p.label, earn: 0, spend: 0 };
       children.forEach(c => {
-        dataMap[p][`${c.id}_earn`] = 0;
-        dataMap[p][`${c.id}_spend`] = 0;
+        dataMap[p.label][`${c.id}_earn`] = 0;
+        dataMap[p.label][`${c.id}_spend`] = 0;
       });
     });
 
+    let baseTotal = 0;
+    const baseChild = {};
+    children.forEach(c => baseChild[c.id] = 0);
+
     filtered.forEach(h => {
+      if (h.type === 'earn') {
+        const dTime = new Date(h.date).getTime();
+        if (dTime < firstPeriodStart) {
+          baseTotal += (h.points || 0);
+          baseChild[h.childId] += (h.points || 0);
+        }
+      }
       const pKey = getPeriodKey(h.date, chartPeriod);
       if (dataMap[pKey]) {
         dataMap[pKey][h.type] += (h.points || 0);
@@ -108,7 +119,22 @@ export default function HistoryView() {
       }
     });
 
-    return periods.map(p => dataMap[p]);
+    let runningTotal = baseTotal;
+    const runningChild = { ...baseChild };
+
+    return periods.map(p => {
+      const row = dataMap[p.label];
+      
+      runningTotal += row.earn;
+      row.cumulative = runningTotal;
+      
+      children.forEach(c => {
+        runningChild[c.id] += row[`${c.id}_earn`];
+        row[`${c.id}_cumulative`] = runningChild[c.id];
+      });
+      
+      return row;
+    });
   }, [filtered, chartPeriod, children]);
 
   const handleDelete = async (childId, historyId) => {
@@ -194,30 +220,38 @@ export default function HistoryView() {
           <button className={`btn btn-sm ${chartPeriod === 'week' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('week')}>週別</button>
           <button className={`btn btn-sm ${chartPeriod === 'month' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('month')}>月別</button>
         </div>
-        <div style={{ width: '100%', height: 250 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} />
-              <Tooltip wrapperStyle={{ fontSize: '0.85rem' }} />
-              <Legend wrapperStyle={{ fontSize: '0.85rem' }} />
-              {selectedChild === 'all' ? (
-                <>
-                  {typeFilter !== 'spend' && children.map((c, i) => (
-                    <Bar key={`earn_${c.id}`} dataKey={`${c.id}_earn`} name={`${c.name}(獲得)`} stackId="earn" fill={CHILD_COLORS[i % CHILD_COLORS.length]} />
-                  ))}
-                  {typeFilter !== 'earn' && children.map((c, i) => (
-                    <Bar key={`spend_${c.id}`} dataKey={`${c.id}_spend`} name={`${c.name}(使用)`} stackId="spend" fill="#aaaaaa" />
-                  ))}
-                </>
-              ) : (
-                <>
-                  {typeFilter !== 'spend' && <Bar dataKey="earn" name="獲得" fill="var(--pink-dark)" />}
-                  {typeFilter !== 'earn' && <Bar dataKey="spend" name="使用" fill="#8884d8" />}
-                </>
-              )}
-            </BarChart>
-          </ResponsiveContainer>
+        <div style={{ overflowX: 'auto', paddingBottom: 8 }}>
+          <div style={{ minWidth: 600, height: 280 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 10 }} orientation="left" />
+                <YAxis yAxisId="right" tick={{ fontSize: 10 }} orientation="right" />
+                <Tooltip wrapperStyle={{ fontSize: '0.85rem' }} />
+                <Legend wrapperStyle={{ fontSize: '0.85rem' }} />
+                {selectedChild === 'all' ? (
+                  <>
+                    {typeFilter !== 'spend' && children.map((c, i) => (
+                      <Bar key={`earn_${c.id}`} yAxisId="left" dataKey={`${c.id}_earn`} name={`${c.name}(獲得)`} fill={CHILD_COLORS[i % CHILD_COLORS.length]} />
+                    ))}
+                    {typeFilter !== 'earn' && children.map((c, i) => (
+                      <Bar key={`spend_${c.id}`} yAxisId="left" dataKey={`${c.id}_spend`} name={`${c.name}(使用)`} fill={CHILD_COLORS[i % CHILD_COLORS.length]} fillOpacity={0.3} />
+                    ))}
+                    {children.map((c, i) => (
+                      <Line key={`cum_${c.id}`} yAxisId="right" type="monotone" dataKey={`${c.id}_cumulative`} name={`${c.name}(累計)`} stroke={CHILD_COLORS[i % CHILD_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    {typeFilter !== 'spend' && <Bar yAxisId="left" dataKey="earn" name="獲得" fill="var(--pink-dark)" />}
+                    {typeFilter !== 'earn' && <Bar yAxisId="left" dataKey="spend" name="使用" fill="#8884d8" />}
+                    <Line yAxisId="right" type="monotone" dataKey="cumulative" name="累計獲得" stroke="#ff7300" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                  </>
+                )}
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
