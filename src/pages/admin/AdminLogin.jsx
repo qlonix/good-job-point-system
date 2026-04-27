@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header';
 import { getPin } from '../../data/store';
-import { authenticateBiometric, registerBiometric, checkBiometricSupport } from '../../utils/auth';
+import { authenticateBiometric, checkBiometricSupport, isBiometricRegistered } from '../../utils/auth';
 
 const IS_WEBKIT = 'WebkitTextSecurity' in document.documentElement.style;
 
@@ -16,22 +16,22 @@ export default function AdminLogin() {
   useEffect(() => {
     checkBiometricSupport().then(supported => {
       setBioSupported(supported);
-      if (!supported) setMode('pin');
+      if (!supported || !isBiometricRegistered()) setMode('pin');
     });
   }, []);
 
   const handleBiometric = async () => {
     try {
       const storedId = localStorage.getItem('gj_credential_id');
-      let success = false;
-      if (storedId) {
-        const assertion = await authenticateBiometric();
-        if (assertion) success = true;
-      } else {
-        const credential = await registerBiometric();
-        if (credential) success = true;
+      if (!storedId) {
+        setMode('pin');
+        return;
       }
-      if (success) navigate('/admin/dashboard');
+      const assertion = await authenticateBiometric();
+      if (assertion) {
+        sessionStorage.setItem('gj_admin_auth', 'true');
+        navigate('/admin/dashboard');
+      }
     } catch (e) {
       console.error('Biometric failed:', e);
       setMode('pin');
@@ -40,6 +40,7 @@ export default function AdminLogin() {
 
   const handlePinSubmit = () => {
     if (pin === getPin()) {
+      sessionStorage.setItem('gj_admin_auth', 'true');
       navigate('/admin/dashboard');
     } else {
       setError(true);
@@ -96,12 +97,12 @@ export default function AdminLogin() {
             <button className="btn btn-pink btn-full btn-lg" onClick={handlePinSubmit}>
               ログイン ✓
             </button>
-            {bioSupported && (
+            {bioSupported && isBiometricRegistered() && (
               <button className="btn btn-outline btn-full" onClick={() => setMode('select')}>
                 ← 戻る
               </button>
             )}
-            {!bioSupported && (
+            {(!bioSupported || !isBiometricRegistered()) && (
               <button className="btn btn-outline btn-full" onClick={() => navigate('/')}>
                 キャンセル
               </button>

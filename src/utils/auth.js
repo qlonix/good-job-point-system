@@ -2,6 +2,14 @@
  * WebAuthn (Passkey) utility for shared authentication logic
  */
 
+export function isBiometricRegistered() {
+  return !!localStorage.getItem('gj_credential_id');
+}
+
+export function clearBiometric() {
+  localStorage.removeItem('gj_credential_id');
+}
+
 export async function checkBiometricSupport() {
   return window.PublicKeyCredential && 
          navigator.credentials && 

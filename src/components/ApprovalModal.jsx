@@ -1,14 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getPin } from '../data/store';
 import { renderRuby } from '../utils/format';
-import { authenticateBiometric, registerBiometric } from '../utils/auth';
+import { authenticateBiometric, isBiometricRegistered, checkBiometricSupport } from '../utils/auth';
 
 const IS_WEBKIT = 'WebkitTextSecurity' in document.documentElement.style;
 
 export default function ApprovalModal({ actionLabel, actionEmoji, childName, onApprove, onCancel }) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
-  const [mode, setMode] = useState('select'); // 'select' | 'pin'
+  const [mode, setMode] = useState(isBiometricRegistered() ? 'select' : 'pin'); // 'select' | 'pin'
+  const [bioSupported, setBioSupported] = useState(false);
+
+  useEffect(() => {
+    checkBiometricSupport().then(supported => setBioSupported(supported));
+  }, []);
 
   const handlePinSubmit = () => {
     if (pin === getPin()) {
@@ -25,13 +30,12 @@ export default function ApprovalModal({ actionLabel, actionEmoji, childName, onA
       const storedId = localStorage.getItem('gj_credential_id');
       let success = false;
 
-      if (storedId) {
-        const assertion = await authenticateBiometric();
-        if (assertion) success = true;
-      } else {
-        const credential = await registerBiometric();
-        if (credential) success = true;
+      if (!storedId) {
+        setMode('pin');
+        return;
       }
+      const assertion = await authenticateBiometric();
+      if (assertion) success = true;
 
       if (success) onApprove();
     } catch (e) {
@@ -49,7 +53,7 @@ export default function ApprovalModal({ actionLabel, actionEmoji, childName, onA
           <strong>{renderRuby(childName)}</strong> が 「{actionEmoji} {renderRuby(actionLabel)}」
         </p>
 
-        {mode === 'select' && (
+        {mode === 'select' && bioSupported && isBiometricRegistered() && (
           <div className="flex-col gap-12">
             <button className="btn btn-pink btn-full btn-lg" onClick={handleBiometric}>
               🔐 顔や指で確認
@@ -91,9 +95,16 @@ export default function ApprovalModal({ actionLabel, actionEmoji, childName, onA
               <button className="btn btn-pink btn-full" onClick={handlePinSubmit}>
                 確認 ✓
               </button>
-              <button className="btn btn-outline btn-full" onClick={() => setMode('select')}>
-                ← 戻る
-              </button>
+              {bioSupported && isBiometricRegistered() && (
+                <button className="btn btn-outline btn-full" onClick={() => setMode('select')}>
+                  ← 戻る
+                </button>
+              )}
+              {(!bioSupported || !isBiometricRegistered()) && (
+                <button className="btn btn-outline btn-full" onClick={onCancel}>
+                  キャンセル
+                </button>
+              )}
             </div>
           </div>
         )}
