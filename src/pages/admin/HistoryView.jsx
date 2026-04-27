@@ -5,7 +5,72 @@ import { getChildren, deleteHistoryItem, updateHistoryItem, addManualHistory, ge
 import { renderRuby } from '../../utils/format';
 import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 
-const CHILD_COLORS = ['#ff8fab', '#84b6f4', '#fdfd96', '#fdcae1', '#ffb347', '#77dd77', '#c2b280'];
+const CHILD_COLORS = ['#E91E63', '#2196F3', '#4CAF50', '#FF9800', '#9C27B0', '#00BCD4', '#795548'];
+
+const CustomTooltip = ({ active, payload, label, childrenList, isAll }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="card" style={{ padding: '10px', fontSize: '0.8rem', border: '1px solid #ddd', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', background: 'white', minWidth: '180px' }}>
+        <div style={{ fontWeight: 'bold', marginBottom: '8px', borderBottom: '1px solid #eee', paddingBottom: '4px' }}>{label}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {isAll ? (
+            childrenList.map((c, i) => {
+              const earn = payload.find(p => p.dataKey === `${c.id}_earn`)?.value || 0;
+              const spend = payload.find(p => p.dataKey === `${c.id}_spend`)?.value || 0;
+              const cum = payload.find(p => p.dataKey === `${c.id}_cumulative`)?.value || 0;
+              if (earn === 0 && spend === 0 && cum === 0) return null;
+              return (
+                <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '15px', alignItems: 'center' }}>
+                  <span style={{ color: CHILD_COLORS[i % CHILD_COLORS.length], fontWeight: 'bold' }}>{c.name}</span>
+                  <span style={{ fontFamily: 'monospace' }}>
+                    <span style={{ color: 'var(--pink-dark)' }}>+{String(earn).padStart(2, ' ')}</span>
+                    <span style={{ color: '#888', margin: '0 2px' }}>/</span>
+                    <span style={{ color: '#555' }}>-{String(spend).padStart(2, ' ')}</span>
+                    <span style={{ marginLeft: '6px', color: '#999', fontSize: '0.7rem' }}>({cum})</span>
+                  </span>
+                </div>
+              );
+            })
+          ) : (
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--pink-dark)', fontWeight: 'bold' }}>獲得:</span>
+                  <span style={{ fontWeight: 'bold' }}>+{payload.find(p => p.dataKey === 'earn')?.value || 0} pt</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#555', fontWeight: 'bold' }}>使用:</span>
+                  <span style={{ fontWeight: 'bold' }}>-{payload.find(p => p.dataKey === 'spend')?.value || 0} pt</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #eee' }}>
+                  <span style={{ color: '#ff7300', fontWeight: 'bold' }}>累計獲得:</span>
+                  <span style={{ fontWeight: 'bold' }}>{payload.find(p => p.dataKey === 'cumulative')?.value || 0} pt</span>
+                </div>
+             </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const CustomLegend = ({ childrenList, isAll }) => {
+  if (!isAll) return <Legend wrapperStyle={{ fontSize: '0.8rem', marginTop: '10px' }} />;
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '12px', marginTop: '15px', fontSize: '0.75rem', padding: '0 10px' }}>
+      {childrenList.map((c, i) => (
+        <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <div style={{ width: '10px', height: '10px', backgroundColor: CHILD_COLORS[i % CHILD_COLORS.length], borderRadius: '2px' }}></div>
+          <span style={{ color: '#444', fontWeight: 'bold' }}>{c.name}</span>
+        </div>
+      ))}
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '15px', marginTop: '8px', color: '#888', fontSize: '0.7rem' }}>
+        <span>📊 棒:獲得 / 使用</span>
+        <span>📈 線:累計獲得</span>
+      </div>
+    </div>
+  );
+};
 
 const generatePeriods = (period) => {
   const periods = [];
@@ -223,36 +288,36 @@ export default function HistoryView() {
         <div style={{ overflowX: 'auto', paddingBottom: 8 }}>
           <div style={{ minWidth: 600, height: 280 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                <YAxis yAxisId="left" tick={{ fontSize: 10 }} orientation="left" />
-                <YAxis yAxisId="right" tick={{ fontSize: 10 }} orientation="right" />
-                <Tooltip wrapperStyle={{ fontSize: '0.85rem' }} />
-                <Legend wrapperStyle={{ fontSize: '0.85rem' }} />
+              <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#888' }} axisLine={{ stroke: '#eee' }} tickLine={false} />
+                <YAxis yAxisId="left" tick={{ fontSize: 10, fill: '#888' }} orientation="left" axisLine={false} tickLine={false} />
+                <YAxis yAxisId="right" tick={{ fontSize: 10, fill: '#888' }} orientation="right" axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip childrenList={children} isAll={selectedChild === 'all'} />} />
                 {selectedChild === 'all' ? (
                   <>
                     {typeFilter !== 'spend' && children.map((c, i) => (
-                      <Bar key={`earn_${c.id}`} yAxisId="left" dataKey={`${c.id}_earn`} name={`${c.name}(獲得)`} fill={CHILD_COLORS[i % CHILD_COLORS.length]} />
+                      <Bar key={`earn_${c.id}`} yAxisId="left" dataKey={`${c.id}_earn`} stackId="earn" fill={CHILD_COLORS[i % CHILD_COLORS.length]} />
                     ))}
                     {typeFilter !== 'earn' && children.map((c, i) => (
-                      <Bar key={`spend_${c.id}`} yAxisId="left" dataKey={`${c.id}_spend`} name={`${c.name}(使用)`} fill={CHILD_COLORS[i % CHILD_COLORS.length]} fillOpacity={0.3} />
+                      <Bar key={`spend_${c.id}`} yAxisId="left" dataKey={`${c.id}_spend`} stackId="spend" fill={CHILD_COLORS[i % CHILD_COLORS.length]} fillOpacity={0.3} />
                     ))}
                     {children.map((c, i) => (
-                      <Line key={`cum_${c.id}`} yAxisId="right" type="monotone" dataKey={`${c.id}_cumulative`} name={`${c.name}(累計)`} stroke={CHILD_COLORS[i % CHILD_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                      <Line key={`cum_${c.id}`} yAxisId="right" type="monotone" dataKey={`${c.id}_cumulative`} stroke={CHILD_COLORS[i % CHILD_COLORS.length]} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
                     ))}
                   </>
                 ) : (
                   <>
-                    {typeFilter !== 'spend' && <Bar yAxisId="left" dataKey="earn" name="獲得" fill="var(--pink-dark)" />}
-                    {typeFilter !== 'earn' && <Bar yAxisId="left" dataKey="spend" name="使用" fill="#8884d8" />}
-                    <Line yAxisId="right" type="monotone" dataKey="cumulative" name="累計獲得" stroke="#ff7300" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    {typeFilter !== 'spend' && <Bar yAxisId="left" dataKey="earn" name="獲得" fill="var(--pink-dark)" radius={[4, 4, 0, 0]} />}
+                    {typeFilter !== 'earn' && <Bar yAxisId="left" dataKey="spend" name="使用" fill="#8884d8" radius={[4, 4, 0, 0]} />}
+                    <Line yAxisId="right" type="monotone" dataKey="cumulative" name="累計獲得" stroke="#ff7300" strokeWidth={3} dot={{ r: 4, fill: '#ff7300', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
                   </>
                 )}
               </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>
+        <CustomLegend childrenList={children} isAll={selectedChild === 'all'} />
       </div>
 
       {filtered.length === 0 ? (
