@@ -396,12 +396,22 @@ export default function HistoryView() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem' }}>
             <input 
               type="date" className="input" style={{ padding: '2px 4px', fontSize: '0.75rem', width: 'auto' }}
-              value={startDate} onChange={e => setStartDate(e.target.value)}
+              value={startDate} 
+              onChange={e => {
+                const val = e.target.value;
+                setStartDate(val);
+                if (endDate && val > endDate) setEndDate(val);
+              }} 
             />
             <span>〜</span>
             <input 
               type="date" className="input" style={{ padding: '2px 4px', fontSize: '0.75rem', width: 'auto' }}
-              value={endDate} onChange={e => setEndDate(e.target.value)}
+              value={endDate} 
+              onChange={e => {
+                const val = e.target.value;
+                setEndDate(val);
+                if (startDate && val < startDate) setStartDate(val);
+              }} 
             />
             <button 
               className="btn btn-sm btn-outline" 

@@ -292,9 +292,25 @@ export default function ChildHistory() {
                 <button className={`btn btn-sm ${chartPeriod === 'month' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('month')}>月</button>
               </div>
               <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                <input type="date" className="input" style={{ padding: '2px 4px', fontSize: '0.7rem', width: 'auto' }} value={startDate} onChange={e => setStartDate(e.target.value)} />
+                <input 
+                  type="date" className="input" style={{ padding: '2px 4px', fontSize: '0.7rem', width: 'auto' }} 
+                  value={startDate} 
+                  onChange={e => {
+                    const val = e.target.value;
+                    setStartDate(val);
+                    if (endDate && val > endDate) setEndDate(val);
+                  }} 
+                />
                 <span style={{ fontSize: '0.7rem' }}>〜</span>
-                <input type="date" className="input" style={{ padding: '2px 4px', fontSize: '0.7rem', width: 'auto' }} value={endDate} onChange={e => setEndDate(e.target.value)} />
+                <input 
+                  type="date" className="input" style={{ padding: '2px 4px', fontSize: '0.7rem', width: 'auto' }} 
+                  value={endDate} 
+                  onChange={e => {
+                    const val = e.target.value;
+                    setEndDate(val);
+                    if (startDate && val < startDate) setStartDate(val);
+                  }} 
+                />
                 <button 
                   className="btn btn-sm btn-outline" 
                   style={{ padding: '2px 6px', fontSize: '0.65rem', minWidth: 0 }}
