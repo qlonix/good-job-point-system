@@ -11,6 +11,7 @@ export default function Settings() {
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [pinMsg, setPinMsg] = useState('');
+  const [dataMsg, setDataMsg] = useState('');
   const [bioSupported, setBioSupported] = useState(false);
   const [bioRegistered, setBioRegistered] = useState(isBiometricRegistered());
   const [resetChildId, setResetChildId] = useState('');
@@ -88,7 +89,8 @@ export default function Settings() {
   const handleResetPoints = async () => {
     if (confirm('全員のポイントと履歴のみをゼロにしますか？\n(子どもやタスクの設定は残ります)\n\nこの操作は取り消せません！')) {
       await resetAllPoints();
-      alert('ポイントと履歴をリセットしました');
+      setDataMsg('✅ 全員のポイントリセットが完了しました');
+      setTimeout(() => setDataMsg(''), 3000);
     }
   };
 
@@ -97,8 +99,9 @@ export default function Settings() {
     const child = children.find(c => c.id === resetChildId);
     if (confirm(`${child.name}ちゃん/くんのポイントと履歴のみをゼロにしますか？\n\nこの操作は取り消せません！`)) {
       await resetChildPoints(resetChildId);
-      alert(`${child.name}ちゃん/くんのデータをリセットしました`);
+      setDataMsg(`✅ ${child.name}ちゃん/くんのリセットが完了しました`);
       setResetChildId('');
+      setTimeout(() => setDataMsg(''), 3000);
     }
   };
 
@@ -145,6 +148,7 @@ export default function Settings() {
 
       <div className="card" style={{ marginBottom: 16 }}>
         <h3 style={{ marginBottom: 12 }}>💾 データ管理</h3>
+        {dataMsg && <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#2a7d56', marginBottom: 12, animation: 'fadeIn 0.3s' }}>{dataMsg}</p>}
         <div className="flex-col gap-8">
           <button className="btn btn-outline btn-full" onClick={handleExport}>📤 データをエクスポート</button>
           <button className="btn btn-outline btn-full" onClick={handleImport}>📥 データをインポート</button>
