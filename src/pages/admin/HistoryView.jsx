@@ -3,6 +3,47 @@ import { useSearchParams, useLocation } from 'react-router-dom';
 import Header from '../../components/Header';
 import { getChildren, deleteHistoryItem, updateHistoryItem, addManualHistory, getCategories } from '../../data/store';
 import { renderRuby } from '../../utils/format';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+
+const CHILD_COLORS = ['#ff8fab', '#84b6f4', '#fdfd96', '#fdcae1', '#ffb347', '#77dd77', '#c2b280'];
+
+const generatePeriods = (period) => {
+  const periods = [];
+  const now = new Date();
+  if (period === 'day') {
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      periods.push(`${d.getMonth() + 1}/${d.getDate()}`);
+    }
+  } else if (period === 'week') {
+    for (let i = 7; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - d.getDay() - (i * 7));
+      periods.push(`${d.getMonth() + 1}/${d.getDate()}〜`);
+    }
+  } else if (period === 'month') {
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      periods.push(`${d.getFullYear()}/${d.getMonth() + 1}`);
+    }
+  }
+  return periods;
+};
+
+const getPeriodKey = (isoString, period) => {
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return null;
+  if (period === 'day') {
+    return `${d.getMonth() + 1}/${d.getDate()}`;
+  } else if (period === 'week') {
+    const startOfWeek = new Date(d);
+    startOfWeek.setDate(d.getDate() - d.getDay());
+    return `${startOfWeek.getMonth() + 1}/${startOfWeek.getDate()}〜`;
+  } else if (period === 'month') {
+    return `${d.getFullYear()}/${d.getMonth() + 1}`;
+  }
+};
 
 export default function HistoryView() {
   const [searchParams] = useSearchParams();
@@ -10,6 +51,7 @@ export default function HistoryView() {
   const [children, setChildren] = useState(getChildren());
   const [selectedChild, setSelectedChild] = useState(searchParams.get('childId') || 'all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [chartPeriod, setChartPeriod] = useState('day');
   const [editingItem, setEditingItem] = useState(null); // { childId, historyId, points }
   const [addingItem, setAddingItem] = useState(false);
   const baseCategories = getCategories();
@@ -46,6 +88,28 @@ export default function HistoryView() {
     const spent = filtered.filter(h => h.type === 'spend').reduce((sum, h) => sum + (h.points || 0), 0);
     return { earned, spent };
   }, [filtered]);
+
+  const chartData = useMemo(() => {
+    const periods = generatePeriods(chartPeriod);
+    const dataMap = {};
+    periods.forEach(p => {
+      dataMap[p] = { name: p, earn: 0, spend: 0 };
+      children.forEach(c => {
+        dataMap[p][`${c.id}_earn`] = 0;
+        dataMap[p][`${c.id}_spend`] = 0;
+      });
+    });
+
+    filtered.forEach(h => {
+      const pKey = getPeriodKey(h.date, chartPeriod);
+      if (dataMap[pKey]) {
+        dataMap[pKey][h.type] += (h.points || 0);
+        dataMap[pKey][`${h.childId}_${h.type}`] += (h.points || 0);
+      }
+    });
+
+    return periods.map(p => dataMap[p]);
+  }, [filtered, chartPeriod, children]);
 
   const handleDelete = async (childId, historyId) => {
     if (!confirm('この履歴を削除しますか？\n(削除すると、その分のポイントも自動的に調整されます)')) return;
@@ -121,6 +185,39 @@ export default function HistoryView() {
         <div className="text-center">
           <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>合計使用</div>
           <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#555' }}>{stats.spent}</div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 16, padding: '16px 8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 16 }}>
+          <button className={`btn btn-sm ${chartPeriod === 'day' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('day')}>日別</button>
+          <button className={`btn btn-sm ${chartPeriod === 'week' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('week')}>週別</button>
+          <button className={`btn btn-sm ${chartPeriod === 'month' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('month')}>月別</button>
+        </div>
+        <div style={{ width: '100%', height: 250 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} />
+              <Tooltip wrapperStyle={{ fontSize: '0.85rem' }} />
+              <Legend wrapperStyle={{ fontSize: '0.85rem' }} />
+              {selectedChild === 'all' ? (
+                <>
+                  {typeFilter !== 'spend' && children.map((c, i) => (
+                    <Bar key={`earn_${c.id}`} dataKey={`${c.id}_earn`} name={`${c.name}(獲得)`} stackId="earn" fill={CHILD_COLORS[i % CHILD_COLORS.length]} />
+                  ))}
+                  {typeFilter !== 'earn' && children.map((c, i) => (
+                    <Bar key={`spend_${c.id}`} dataKey={`${c.id}_spend`} name={`${c.name}(使用)`} stackId="spend" fill="#aaaaaa" />
+                  ))}
+                </>
+              ) : (
+                <>
+                  {typeFilter !== 'spend' && <Bar dataKey="earn" name="獲得" fill="var(--pink-dark)" />}
+                  {typeFilter !== 'earn' && <Bar dataKey="spend" name="使用" fill="#8884d8" />}
+                </>
+              )}
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
