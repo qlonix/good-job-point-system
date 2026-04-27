@@ -110,18 +110,26 @@ const generatePeriods = (period, startDate, endDate) => {
   const periods = [];
   let curr = new Date(startDate);
   const end = new Date(endDate);
+  const spanDays = (end - curr) / (1000 * 60 * 60 * 24);
+  const showYear = spanDays > 300;
   
   if (period === 'day') {
     curr.setHours(0, 0, 0, 0);
     while (curr <= end) {
-      periods.push({ label: `${curr.getMonth() + 1}/${curr.getDate()}`, start: curr.getTime() });
+      const label = showYear 
+        ? `${curr.getFullYear().toString().slice(-2)}/${curr.getMonth() + 1}/${curr.getDate()}`
+        : `${curr.getMonth() + 1}/${curr.getDate()}`;
+      periods.push({ label, start: curr.getTime() });
       curr.setDate(curr.getDate() + 1);
     }
   } else if (period === 'week') {
     curr.setDate(curr.getDate() - curr.getDay());
     curr.setHours(0, 0, 0, 0);
     while (curr <= end) {
-      periods.push({ label: `${curr.getMonth() + 1}/${curr.getDate()}〜`, start: curr.getTime() });
+      const label = showYear
+        ? `${curr.getFullYear().toString().slice(-2)}/${curr.getMonth() + 1}/${curr.getDate()}〜`
+        : `${curr.getMonth() + 1}/${curr.getDate()}〜`;
+      periods.push({ label, start: curr.getTime() });
       curr.setDate(curr.getDate() + 7);
     }
   } else if (period === 'month') {
@@ -135,15 +143,24 @@ const generatePeriods = (period, startDate, endDate) => {
   return periods;
 };
 
-const getPeriodKey = (isoString, period) => {
+const getPeriodKey = (isoString, period, startDate, endDate) => {
   const d = new Date(isoString);
   if (isNaN(d.getTime())) return null;
+  const s = new Date(startDate);
+  const e = new Date(endDate);
+  const spanDays = (e - s) / (1000 * 60 * 60 * 24);
+  const showYear = spanDays > 300;
+
   if (period === 'day') {
-    return `${d.getMonth() + 1}/${d.getDate()}`;
+    return showYear
+      ? `${d.getFullYear().toString().slice(-2)}/${d.getMonth() + 1}/${d.getDate()}`
+      : `${d.getMonth() + 1}/${d.getDate()}`;
   } else if (period === 'week') {
     const startOfWeek = new Date(d);
     startOfWeek.setDate(d.getDate() - d.getDay());
-    return `${startOfWeek.getMonth() + 1}/${startOfWeek.getDate()}〜`;
+    return showYear
+      ? `${startOfWeek.getFullYear().toString().slice(-2)}/${startOfWeek.getMonth() + 1}/${startOfWeek.getDate()}〜`
+      : `${startOfWeek.getMonth() + 1}/${startOfWeek.getDate()}〜`;
   } else if (period === 'month') {
     return `${d.getFullYear()}/${d.getMonth() + 1}`;
   }
@@ -240,7 +257,7 @@ export default function HistoryView() {
         baseTotal += amt;
         baseChild[h.childId] += amt;
       }
-      const pKey = getPeriodKey(h.date, chartPeriod);
+      const pKey = getPeriodKey(h.date, chartPeriod, startDate, endDate);
       if (dataMap[pKey]) {
         dataMap[pKey][h.type] += (h.points || 0);
         dataMap[pKey][`${h.childId}_${h.type}`] += (h.points || 0);
@@ -265,7 +282,7 @@ export default function HistoryView() {
       
       return row;
     });
-  }, [filtered, chartPeriod, children]);
+  }, [filtered, chartPeriod, startDate, endDate, children]);
 
   const [hiddenItems, setHiddenItems] = useState(new Set());
   const chartContainerRef = useRef(null);
