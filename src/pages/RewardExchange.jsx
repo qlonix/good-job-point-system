@@ -24,10 +24,6 @@ export default function RewardExchange() {
       const reward = rewards.find((r) => r.id === rewardId);
       setSuccess({ emoji: reward.emoji, name: reward.name, cost: reward.cost });
       setChild(getChildById(id));
-      setTimeout(() => {
-        setSuccess(null);
-        navigate(`/child/${id}`);
-      }, 2500);
     } else if (result.reason === 'insufficient') {
       setError(`ポイントがたりないよ！ あと ${result.shortage} ポイント`);
       setTimeout(() => setError(''), 2500);
@@ -90,6 +86,9 @@ export default function RewardExchange() {
             <div className="success-points">−{success.cost} ポイント</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-light)' }}>
               おめでとう！🎉
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: 20 }}>
+              （タップして もどる）
             </div>
           </div>
         </>

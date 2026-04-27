@@ -21,10 +21,6 @@ export default function TaskSelect() {
     if (result) {
       const task = tasks.find((t) => t.id === taskId);
       setSuccess({ emoji: task.emoji, name: task.name, points: result.pointsAdded });
-      setTimeout(() => {
-        setSuccess(null);
-        navigate(`/child/${id}`);
-      }, 2200);
     }
   };
 
@@ -74,6 +70,9 @@ export default function TaskSelect() {
             <div className="success-points">+{success.points} ポイント！</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-light)' }}>
               すごい！がんばったね！ ✨
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: 20 }}>
+              （タップして もどる）
             </div>
           </div>
         </>
