@@ -36,7 +36,7 @@ export default function ChildDashboard() {
   const spendAction = { 
     key: 'reward', 
     emoji: '🎁', 
-    label: renderRuby('[使(つか)]う'), 
+    label: renderRuby('ごほうびをもらう'), 
     gradient: 'linear-gradient(135deg, var(--yellow), var(--orange))' 
   };
   
@@ -129,7 +129,7 @@ export default function ChildDashboard() {
           ))}
         </div>
 
-        <div className="dashboard-section-label">{renderRuby('ポイントを[使(つか)]う')}</div>
+        <div className="dashboard-section-label">{renderRuby('ごほうびをもらう')}</div>
         <div className="action-grid" style={{ marginTop: 0, gridTemplateColumns: '1fr' }}>
           <button
             className="action-grid-btn"

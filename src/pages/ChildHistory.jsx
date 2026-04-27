@@ -101,7 +101,10 @@ export default function ChildHistory() {
     const dailyEarned = history
       .filter((h) => h.type === 'earn' && typeof h.date === 'string' && h.date.startsWith(datePrefix))
       .reduce((sum, h) => sum + (h.points || 0), 0);
-    calDays.push({ day: i, earned: dailyEarned });
+    const dailySpent = history
+      .filter((h) => h.type === 'spend' && typeof h.date === 'string' && h.date.startsWith(datePrefix))
+      .reduce((sum, h) => sum + (h.points || 0), 0);
+    calDays.push({ day: i, earned: dailyEarned, spent: dailySpent });
   }
 
   const changeMonth = (offset) => {
@@ -177,7 +180,7 @@ export default function ChildHistory() {
         </div>
       </div>
 
-      <div className="tabs" style={{ marginBottom: 16 }}>
+      <div className="tabs history-tabs" style={{ marginBottom: 16 }}>
         <button className={`tab ${view === 'list' ? 'active' : ''}`} onClick={() => setView('list')}>📜 リスト</button>
         <button className={`tab ${view === 'graph' ? 'active' : ''}`} onClick={() => setView('graph')}>📊 グラフ</button>
         <button className={`tab ${view === 'calendar' ? 'active' : ''}`} onClick={() => setView('calendar')}>📅 カレンダー</button>
@@ -221,7 +224,10 @@ export default function ChildHistory() {
                   {d && (
                     <>
                       <span className="cal-num">{d.day}</span>
-                      {d.earned > 0 && <span className="cal-val">+{d.earned}</span>}
+                      <div className="cal-vals">
+                        {d.earned > 0 && <span className="cal-val earn">+{d.earned}</span>}
+                        {d.spent > 0 && <span className="cal-val spend">-{d.spent}</span>}
+                      </div>
                     </>
                   )}
                 </div>
@@ -279,12 +285,19 @@ export default function ChildHistory() {
       <style>{`
         .h-points.earn { color: var(--pink-dark); }
         .h-points.spend { color: #555; }
+        .history-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: #eee; padding: 4px; border-radius: 12px; }
+        .history-tabs .tab { margin: 0; font-size: 0.75rem; padding: 8px 2px; white-space: nowrap; border-radius: 8px; border: none; background: transparent; color: #666; font-weight: 800; }
+        .history-tabs .tab.active { background: white; color: var(--pink-dark); box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         .cal-day-head { text-align: center; font-size: 0.75rem; font-weight: 800; color: var(--text-light); padding: 4px 0; }
-        .cal-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 8px; position: relative; }
+        .cal-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 8px; position: relative; padding: 2px; }
         .cal-day.empty { background: transparent; }
         .cal-num { font-size: 0.8rem; font-weight: 700; color: #444; }
-        .cal-val { font-size: 0.6rem; font-weight: 900; color: var(--pink-dark); margin-top: 1px; }
+        .cal-vals { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+        .cal-val { font-size: 0.55rem; font-weight: 900; }
+        .cal-val.earn { color: var(--pink-dark); }
+        .cal-val.spend { color: #888; }
       `}</style>
     </div>
   );
