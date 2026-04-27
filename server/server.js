@@ -107,13 +107,26 @@ app.post('/api/children/:id/points/spend', (req, res) => {
     return res.json({ success: false, reason: 'insufficient', shortage: reward.cost - total });
   }
 
+  const deductions = {};
   let remaining = reward.cost;
-  const categories = Object.keys(child.points);
-  for (const cat of categories) {
+  // Get categories from data to ensure we iterate in a stable order
+  const cats = data.categories ? data.categories.map(c => c.id) : Object.keys(child.points);
+  
+  for (const cat of cats) {
     if (remaining <= 0) break;
-    const deduct = Math.min(child.points[cat], remaining);
+    const current = child.points[cat] || 0;
+    if (current <= 0) continue;
+    const deduct = Math.min(current, remaining);
     child.points[cat] -= deduct;
     remaining -= deduct;
+    deductions[cat] = deduct;
+  }
+  
+  // If still remaining (negative points allowed if total balance was sufficient but categories were weird)
+  if (remaining > 0) {
+    const firstCat = cats[0] || 'seikatsu';
+    child.points[firstCat] = (child.points[firstCat] || 0) - remaining;
+    deductions[firstCat] = (deductions[firstCat] || 0) + remaining;
   }
 
   child.history.unshift({
@@ -124,6 +137,7 @@ app.post('/api/children/:id/points/spend', (req, res) => {
     points: reward.cost,
     category: 'reward',
     type: 'spend',
+    deductions // Store for undo
   });
   save(data);
   res.json({ success: true, child });
@@ -285,9 +299,15 @@ app.delete('/api/children/:id/history/:historyId', (req, res) => {
   if (item.type === 'earn') {
     child.points[item.category] = Math.max(0, (child.points[item.category] || 0) - amt);
   } else if (item.type === 'spend') {
-    // If it was a reward exchange, it might have been deducted from multiple categories.
-    // For simplicity, we add it back to the category it was logged with.
-    child.points[item.category] = (child.points[item.category] || 0) + amt;
+    if (item.deductions) {
+      // Restore specific categories
+      for (const [cat, val] of Object.entries(item.deductions)) {
+        child.points[cat] = (child.points[cat] || 0) + val;
+      }
+    } else {
+      // Fallback for old items
+      child.points[item.category || 'seikatsu'] = (child.points[item.category] || 0) + amt;
+    }
   }
 
   child.history.splice(hIdx, 1);
@@ -336,9 +356,12 @@ app.post('/api/children/:id/points/reset', (req, res) => {
   const child = data.children.find(c => c.id === req.params.id);
   if (!child) return res.status(404).json({ error: 'Child not found' });
 
+  // Completely wipe points and re-initialize
   child.points = {};
   if (data.categories) {
-    data.categories.forEach(cat => child.points[cat.id] = 0);
+    data.categories.forEach(cat => {
+      child.points[cat.id] = 0;
+    });
   }
   child.history = [];
   
