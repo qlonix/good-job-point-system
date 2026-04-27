@@ -15,10 +15,23 @@ import CategoryManager from './pages/admin/CategoryManager';
 import EmojiManager from './pages/admin/EmojiManager';
 
 import AdminRoute from './components/AdminRoute';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
 
 export default function App() {
   return (
     <HashRouter>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/child/:id" element={<ChildDashboard />} />
