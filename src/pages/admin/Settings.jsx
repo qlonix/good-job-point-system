@@ -15,9 +15,10 @@ export default function Settings() {
   const [bioSupported, setBioSupported] = useState(false);
   const [bioRegistered, setBioRegistered] = useState(isBiometricRegistered());
   const [resetChildId, setResetChildId] = useState('');
-  const children = getChildren();
+  const [children, setChildren] = useState([]);
 
   useEffect(() => {
+    setChildren(getChildren());
     checkBiometricSupport().then(supported => setBioSupported(supported));
   }, []);
 
@@ -88,9 +89,16 @@ export default function Settings() {
 
   const handleResetPoints = async () => {
     if (confirm('全員のポイントと履歴のみをゼロにしますか？\n(子どもやタスクの設定は残ります)\n\nこの操作は取り消せません！')) {
-      await resetAllPoints();
-      setDataMsg('✅ 全員のポイントリセットが完了しました');
-      setTimeout(() => setDataMsg(''), 3000);
+      try {
+        await resetAllPoints();
+        console.log('Reset all points successful');
+        setDataMsg('✅ 全員のポイントリセットが完了しました');
+        setChildren(getChildren()); // Refresh local list
+        setTimeout(() => setDataMsg(''), 4000);
+      } catch (e) {
+        console.error('Reset all points failed:', e);
+        setDataMsg('❌ リセットに失敗しました');
+      }
     }
   };
 
@@ -98,10 +106,17 @@ export default function Settings() {
     if (!resetChildId) return;
     const child = children.find(c => c.id === resetChildId);
     if (confirm(`${child.name}ちゃん/くんのポイントと履歴のみをゼロにしますか？\n\nこの操作は取り消せません！`)) {
-      await resetChildPoints(resetChildId);
-      setDataMsg(`✅ ${child.name}ちゃん/くんのリセットが完了しました`);
-      setResetChildId('');
-      setTimeout(() => setDataMsg(''), 3000);
+      try {
+        await resetChildPoints(resetChildId);
+        console.log('Individual reset successful for:', resetChildId);
+        setDataMsg(`✅ ${child.name}ちゃん/くんのリセットが完了しました`);
+        setResetChildId('');
+        setChildren(getChildren()); // Refresh local list
+        setTimeout(() => setDataMsg(''), 4000);
+      } catch (e) {
+        console.error('Individual reset failed:', e);
+        setDataMsg('❌ リセットに失敗しました');
+      }
     }
   };
 
@@ -146,9 +161,13 @@ export default function Settings() {
         )}
       </div>
 
-      <div className="card" style={{ marginBottom: 16 }}>
+      <div className="card" style={{ marginBottom: 16, border: dataMsg ? '2px solid var(--mint)' : 'none' }}>
         <h3 style={{ marginBottom: 12 }}>💾 データ管理</h3>
-        {dataMsg && <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#2a7d56', marginBottom: 12, animation: 'fadeIn 0.3s' }}>{dataMsg}</p>}
+        {dataMsg && (
+          <div style={{ background: '#e8f5e9', color: '#2e7d32', padding: 12, borderRadius: 12, marginBottom: 16, fontWeight: 800, textAlign: 'center', animation: 'bounceIn 0.5s' }}>
+            {dataMsg}
+          </div>
+        )}
         <div className="flex-col gap-8">
           <button className="btn btn-outline btn-full" onClick={handleExport}>📤 データをエクスポート</button>
           <button className="btn btn-outline btn-full" onClick={handleImport}>📥 データをインポート</button>
