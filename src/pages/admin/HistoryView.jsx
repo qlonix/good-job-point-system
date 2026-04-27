@@ -403,6 +403,13 @@ export default function HistoryView() {
               type="date" className="input" style={{ padding: '2px 4px', fontSize: '0.75rem', width: 'auto' }}
               value={endDate} onChange={e => setEndDate(e.target.value)}
             />
+            <button 
+              className="btn btn-sm btn-outline" 
+              style={{ padding: '2px 8px', fontSize: '0.7rem', minWidth: 0 }}
+              onClick={() => { setStartDate(defaultStart); setEndDate(today); }}
+            >
+              リセット
+            </button>
           </div>
         </div>
         <div style={{ position: 'relative' }}>
