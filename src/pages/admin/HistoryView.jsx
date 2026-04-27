@@ -106,21 +106,21 @@ const CustomLegend = ({ childrenList, isAll, hiddenItems, toggleItem }) => {
   );
 };
 
-const generatePeriods = (period) => {
+const generatePeriods = (period, count) => {
   const periods = [];
   const now = new Date();
   if (period === 'day') {
-    for (let i = 13; i >= 0; i--) {
+    for (let i = count - 1; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
       periods.push({ label: `${d.getMonth() + 1}/${d.getDate()}`, start: d.getTime() });
     }
   } else if (period === 'week') {
-    for (let i = 7; i >= 0; i--) {
+    for (let i = count - 1; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() - (i * 7));
       periods.push({ label: `${d.getMonth() + 1}/${d.getDate()}〜`, start: d.getTime() });
     }
   } else if (period === 'month') {
-    for (let i = 5; i >= 0; i--) {
+    for (let i = count - 1; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       periods.push({ label: `${d.getFullYear()}/${d.getMonth() + 1}`, start: d.getTime() });
     }
@@ -149,6 +149,8 @@ export default function HistoryView() {
   const [selectedChild, setSelectedChild] = useState(searchParams.get('childId') || 'all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [chartPeriod, setChartPeriod] = useState('day');
+  const [lookbackCount, setLookbackCount] = useState(14);
+  const [zoomScale, setZoomScale] = useState(1.0);
   const [editingItem, setEditingItem] = useState(null); // { childId, historyId, points }
   const [addingItem, setAddingItem] = useState(false);
   const baseCategories = getCategories();
@@ -162,11 +164,19 @@ export default function HistoryView() {
     category: manualCategories.length > 0 ? manualCategories[0].id : 'seikatsu'
   });
 
-  // フィルタ状態をURLパラメータに同期 (任意だが使い勝手のため)
+  // フィルタ状態をURLパラメータに同期
   useEffect(() => {
     const cid = searchParams.get('childId');
     if (cid) setSelectedChild(cid);
   }, [searchParams]);
+
+  // 期間切り替え時にデフォルト件数を設定
+  useEffect(() => {
+    if (chartPeriod === 'day') setLookbackCount(14);
+    else if (chartPeriod === 'week') setLookbackCount(8);
+    else if (chartPeriod === 'month') setLookbackCount(6);
+    setZoomScale(1.0);
+  }, [chartPeriod]);
 
   const allHistory = useMemo(() => 
     children.flatMap((c) =>
@@ -187,7 +197,7 @@ export default function HistoryView() {
   }, [filtered]);
 
   const chartData = useMemo(() => {
-    const periods = generatePeriods(chartPeriod);
+    const periods = generatePeriods(chartPeriod, lookbackCount);
     const firstPeriodStart = periods.length > 0 ? periods[0].start : 0;
     
     const dataMap = {};
@@ -237,7 +247,6 @@ export default function HistoryView() {
     });
   }, [filtered, chartPeriod, children]);
 
-  const [zoom, setZoom] = useState({ start: 0, end: 1 });
   const [hiddenItems, setHiddenItems] = useState(new Set());
   const chartContainerRef = useRef(null);
 
@@ -251,25 +260,12 @@ export default function HistoryView() {
   };
 
   const handleZoom = (direction) => {
-    setZoom(prev => {
-      const size = prev.end - prev.start;
-      const zoomFactor = direction === 'in' ? 0.7 : 1.4;
-      const newSize = Math.max(0.1, Math.min(1.0, size * zoomFactor));
-      const center = prev.start + size / 2;
-      let ns = center - newSize / 2;
-      let ne = center + newSize / 2;
-      if (ns < 0) { ne -= ns; ns = 0; }
-      if (ne > 1) { ns -= (ne - 1); ne = 1; }
-      return { start: Math.max(0, ns), end: Math.min(1, ne) };
+    setZoomScale(prev => {
+      if (direction === 'in') return Math.min(prev + 0.5, 4.0);
+      if (direction === 'out') return Math.max(prev - 0.5, 1.0);
+      return 1.0; // reset
     });
   };
-
-  const visibleData = useMemo(() => {
-    if (chartData.length <= 5) return chartData;
-    const startIdx = Math.floor(zoom.start * (chartData.length - 1));
-    const endIdx = Math.ceil(zoom.end * (chartData.length - 1));
-    return chartData.slice(Math.max(0, startIdx), Math.min(chartData.length, endIdx + 1));
-  }, [chartData, zoom]);
 
   // Removed wheel/touch listeners as zoom is now button-based
 
@@ -353,23 +349,50 @@ export default function HistoryView() {
       </div>
 
       <div className="card" style={{ marginBottom: 16, padding: '16px 8px' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 4 }}>
             <button className={`btn btn-sm ${chartPeriod === 'day' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('day')}>日別</button>
             <button className={`btn btn-sm ${chartPeriod === 'week' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('week')}>週別</button>
             <button className={`btn btn-sm ${chartPeriod === 'month' ? 'btn-pink' : 'btn-outline'}`} onClick={() => setChartPeriod('month')}>月別</button>
           </div>
           <div style={{ width: 1, height: 20, background: '#eee' }}></div>
-          <div style={{ display: 'flex', gap: 4 }}>
-            <button className="btn btn-sm btn-outline" style={{ minWidth: 36 }} onClick={() => handleZoom('in')} title="拡大">➕</button>
-            <button className="btn btn-sm btn-outline" style={{ minWidth: 36 }} onClick={() => handleZoom('out')} title="縮小">➖</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '0.75rem', color: '#888' }}>期間:</span>
+            <select 
+              className="input" 
+              style={{ padding: '2px 8px', fontSize: '0.8rem', width: 'auto' }} 
+              value={lookbackCount} 
+              onChange={e => setLookbackCount(parseInt(e.target.value))}
+            >
+              {chartPeriod === 'day' ? (
+                <>
+                  <option value={7}>7日</option>
+                  <option value={14}>14日</option>
+                  <option value={30}>30日</option>
+                  <option value={90}>90日</option>
+                </>
+              ) : chartPeriod === 'week' ? (
+                <>
+                  <option value={4}>4週</option>
+                  <option value={8}>8週</option>
+                  <option value={12}>12週</option>
+                  <option value={24}>24週</option>
+                </>
+              ) : (
+                <>
+                  <option value={6}>6ヶ月</option>
+                  <option value={12}>12ヶ月</option>
+                  <option value={24}>24ヶ月</option>
+                </>
+              )}
+            </select>
           </div>
         </div>
         <div style={{ position: 'relative' }}>
-          <div ref={chartContainerRef} style={{ overflowX: 'hidden', paddingBottom: 8 }}>
-            <div style={{ width: '100%', height: 280 }}>
+          <div ref={chartContainerRef} style={{ overflowX: 'auto', paddingBottom: 8 }}>
+            <div style={{ width: `${zoomScale * 100}%`, minWidth: '100%', height: 280, transition: 'width 0.3s ease-out' }}>
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={visibleData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                   <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#888' }} axisLine={{ stroke: '#eee' }} tickLine={false} />
                   <YAxis yAxisId="left" tick={{ fontSize: 10, fill: '#888' }} orientation="left" axisLine={false} tickLine={false} />
@@ -399,17 +422,17 @@ export default function HistoryView() {
             </div>
           </div>
         </div>
-        {(zoom.start > 0 || zoom.end < 1) && (
-          <div style={{ textAlign: 'center', marginTop: 8 }}>
-            <button 
-              className="btn btn-sm btn-outline" 
-              style={{ fontSize: '0.75rem', padding: '4px 12px', borderStyle: 'dashed', color: '#888' }}
-              onClick={() => setZoom({ start: 0, end: 1 })}
-            >
-              🔄 ズーム解除（全体表示）
-            </button>
-          </div>
-        )}
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 8 }}>
+          <button className="btn btn-sm btn-outline" style={{ minWidth: 44, padding: '6px 0' }} onClick={() => handleZoom('out')} title="縮小">➖</button>
+          <button 
+            className="btn btn-sm btn-outline" 
+            style={{ fontSize: '0.75rem', padding: '6px 12px', borderStyle: 'dashed', color: zoomScale > 1 ? 'var(--pink-dark)' : '#888' }}
+            onClick={() => handleZoom('reset')}
+          >
+            🔄 ズーム解除
+          </button>
+          <button className="btn btn-sm btn-outline" style={{ minWidth: 44, padding: '6px 0' }} onClick={() => handleZoom('in')} title="拡大">➕</button>
+        </div>
         <CustomLegend childrenList={children} isAll={selectedChild === 'all'} hiddenItems={hiddenItems} toggleItem={toggleItem} />
       </div>
 
