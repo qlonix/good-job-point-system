@@ -105,11 +105,11 @@ export default function Settings() {
   const handleResetIndividual = async () => {
     if (!resetChildId) return;
     const child = children.find(c => c.id === resetChildId);
-    if (confirm(`${child.name}ちゃん/くんのポイントと履歴のみをゼロにしますか？\n\nこの操作は取り消せません！`)) {
+    if (confirm(`${child.name}のポイントと履歴のみをゼロにしますか？\n\nこの操作は取り消せません！`)) {
       try {
         await resetChildPoints(resetChildId);
         console.log('Individual reset successful for:', resetChildId);
-        setDataMsg(`✅ ${child.name}ちゃん/くんのリセットが完了しました`);
+        setDataMsg(`✅ ${child.name}のリセットが完了しました`);
         setResetChildId('');
         setChildren(getChildren()); // Refresh local list
         setTimeout(() => setDataMsg(''), 4000);
