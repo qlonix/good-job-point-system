@@ -332,12 +332,12 @@ export default function ChildHistory() {
                     margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#888' }} axisLine={{ stroke: '#eee' }} tickLine={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#888' }} axisLine={{ stroke: '#eee' }} tickLine={false} padding={{ left: 10, right: 10 }} />
                     <YAxis yAxisId="left" tick={{ fontSize: 9, fill: '#888' }} orientation="left" axisLine={false} tickLine={false} />
                     <YAxis yAxisId="right" tick={{ fontSize: 9, fill: '#888' }} orientation="right" axisLine={false} tickLine={false} />
                     <Tooltip content={<CustomTooltip />} />
-                    {!hiddenItems.has('bars') && <Bar yAxisId="left" dataKey="earn" fill="var(--pink-dark)" fillOpacity={0.6} isAnimationActive={false} />}
-                    {!hiddenItems.has('bars') && <Bar yAxisId="left" dataKey="spend" fill="#8884d8" fillOpacity={0.6} isAnimationActive={false} />}
+                    {!hiddenItems.has('bars') && <Bar yAxisId="left" dataKey="earn" stackId="total" fill="var(--pink-dark)" fillOpacity={0.6} isAnimationActive={false} />}
+                    {!hiddenItems.has('bars') && <Bar yAxisId="left" dataKey="spend" stackId="total" fill="#8884d8" fillOpacity={0.6} isAnimationActive={false} />}
                     {!hiddenItems.has('cumulative') && <Line yAxisId="right" type="monotone" dataKey="cumulative" stroke="#ff7300" strokeWidth={2} dot={false} isAnimationActive={false} />}
                   </ComposedChart>
                 </ResponsiveContainer>

@@ -436,17 +436,17 @@ export default function HistoryView() {
                   margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#888' }} axisLine={{ stroke: '#eee' }} tickLine={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#888' }} axisLine={{ stroke: '#eee' }} tickLine={false} padding={{ left: 10, right: 10 }} />
                   <YAxis yAxisId="left" tick={{ fontSize: 10, fill: '#888' }} orientation="left" axisLine={false} tickLine={false} />
                   <YAxis yAxisId="right" tick={{ fontSize: 10, fill: '#888' }} orientation="right" axisLine={false} tickLine={false} />
                   <Tooltip content={<CustomTooltip childrenList={children} isAll={selectedChild === 'all'} />} />
                   {selectedChild === 'all' ? (
                     <>
                       {typeFilter !== 'spend' && !hiddenItems.has('bars') && children.map((c, i) => (
-                        <Bar key={`earn_${c.id}`} yAxisId="left" dataKey={`${c.id}_earn`} stackId="earn" fill={CHILD_COLORS[i % CHILD_COLORS.length]} fillOpacity={0.6} hide={hiddenItems.has(c.id)} isAnimationActive={false} />
+                        <Bar key={`earn_${c.id}`} yAxisId="left" dataKey={`${c.id}_earn`} stackId="total" fill={CHILD_COLORS[i % CHILD_COLORS.length]} fillOpacity={0.6} hide={hiddenItems.has(c.id)} isAnimationActive={false} />
                       ))}
                       {typeFilter !== 'earn' && !hiddenItems.has('bars') && children.map((c, i) => (
-                        <Bar key={`spend_${c.id}`} yAxisId="left" dataKey={`${c.id}_spend`} stackId="spend" fill={CHILD_COLORS[i % CHILD_COLORS.length]} fillOpacity={0.2} hide={hiddenItems.has(c.id)} isAnimationActive={false} />
+                        <Bar key={`spend_${c.id}`} yAxisId="left" dataKey={`${c.id}_spend`} stackId="total" fill={CHILD_COLORS[i % CHILD_COLORS.length]} fillOpacity={0.2} hide={hiddenItems.has(c.id)} isAnimationActive={false} />
                       ))}
                       {!hiddenItems.has('cumulative') && children.map((c, i) => (
                         <Line key={`cum_${c.id}`} yAxisId="right" type="monotone" dataKey={`${c.id}_cumulative`} stroke={CHILD_COLORS[i % CHILD_COLORS.length]} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} hide={hiddenItems.has(c.id)} isAnimationActive={false} />
@@ -454,8 +454,8 @@ export default function HistoryView() {
                     </>
                   ) : (
                     <>
-                      {typeFilter !== 'spend' && !hiddenItems.has('bars') && <Bar yAxisId="left" dataKey="earn" name="獲得" fill="var(--pink-dark)" fillOpacity={0.6} radius={[4, 4, 0, 0]} isAnimationActive={false} />}
-                      {typeFilter !== 'earn' && !hiddenItems.has('bars') && <Bar yAxisId="left" dataKey="spend" name="使用" fill="#8884d8" fillOpacity={0.6} radius={[4, 4, 0, 0]} isAnimationActive={false} />}
+                      {typeFilter !== 'spend' && !hiddenItems.has('bars') && <Bar yAxisId="left" dataKey="earn" name="獲得" stackId="total" fill="var(--pink-dark)" fillOpacity={0.6} radius={[4, 4, 0, 0]} isAnimationActive={false} />}
+                      {typeFilter !== 'earn' && !hiddenItems.has('bars') && <Bar yAxisId="left" dataKey="spend" name="使用" stackId="total" fill="#8884d8" fillOpacity={0.6} radius={[4, 4, 0, 0]} isAnimationActive={false} />}
                       {!hiddenItems.has('cumulative') && <Line yAxisId="right" type="monotone" dataKey="cumulative" name="使用可能ポイント" stroke="#ff7300" strokeWidth={3} dot={{ r: 4, fill: '#ff7300', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} isAnimationActive={false} />}
                     </>
                   )}
