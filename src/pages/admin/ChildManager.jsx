@@ -380,6 +380,14 @@ export default function ChildManager() {
                   📋 コピー
                 </button>
               </div>
+              <div style={{ marginTop: 8 }}>
+                <button 
+                  className="btn btn-sm btn-outline btn-full" 
+                  onClick={() => window.open(`${window.location.origin}${window.location.pathname}#/child/${qrModal.id}`, '_blank')}
+                >
+                  🔗 ページを開く (別タブ)
+                </button>
+              </div>
             </div>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginBottom: 16 }}>
               このQRコードを印刷してカードに貼り付けてください
