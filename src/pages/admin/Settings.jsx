@@ -50,8 +50,8 @@ export default function Settings() {
     }
   };
 
-  const handleExport = () => {
-    const data = exportData();
+  const handleExport = async () => {
+    const data = await exportData();
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
