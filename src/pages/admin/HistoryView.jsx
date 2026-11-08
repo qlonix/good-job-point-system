@@ -1,9 +1,9 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import Header from '../../components/Header';
 import { getChildren, deleteHistoryItem, updateHistoryItem, addManualHistory, getCategories } from '../../data/store';
 import { renderRuby } from '../../utils/format';
-import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
+import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 const CHILD_COLORS = ['#E91E63', '#2196F3', '#4CAF50', '#FF9800', '#9C27B0', '#00BCD4', '#795548'];
 
@@ -178,8 +178,8 @@ export default function HistoryView() {
     return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
   };
 
-  const today = getLocalDate(new Date());
-  const defaultStart = getLocalDate(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000));
+  const [today] = useState(() => getLocalDate(new Date()));
+  const [defaultStart] = useState(() => getLocalDate(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)));
   const [startDate, setStartDate] = useState(defaultStart);
   const [endDate, setEndDate] = useState(today);
   const [zoomScale, setZoomScale] = useState(1.0);
@@ -195,17 +195,6 @@ export default function HistoryView() {
     taskEmoji: '📝',
     category: manualCategories.length > 0 ? manualCategories[0].id : 'seikatsu'
   });
-
-  // フィルタ状態をURLパラメータに同期
-  useEffect(() => {
-    const cid = searchParams.get('childId');
-    if (cid) setSelectedChild(cid);
-  }, [searchParams]);
-
-  // 期間や日付変更時に倍率をリセット
-  useEffect(() => {
-    setZoomScale(1.0);
-  }, [chartPeriod, startDate, endDate]);
 
   const allHistory = useMemo(() => 
     children.flatMap((c) =>
@@ -268,24 +257,20 @@ export default function HistoryView() {
       }
     });
 
-    let runningTotal = baseTotal;
-    const runningChild = { ...baseChild };
+    return periods.reduce((acc, p) => {
+      const row = { ...dataMap[p.label] };
+      const prevRow = acc.length > 0 ? acc[acc.length - 1] : null;
+      const prevTotal = prevRow ? prevRow.cumulative : baseTotal;
+      row.cumulative = prevTotal + row.earn - row.spend;
 
-    return periods.map(p => {
-      const row = dataMap[p.label];
-      
-      runningTotal += row.earn;
-      runningTotal -= row.spend;
-      row.cumulative = runningTotal;
-      
       children.forEach(c => {
-        runningChild[c.id] += row[`${c.id}_earn`];
-        runningChild[c.id] -= row[`${c.id}_spend`];
-        row[`${c.id}_cumulative`] = runningChild[c.id];
+        const prevChildCum = prevRow ? prevRow[`${c.id}_cumulative`] : baseChild[c.id];
+        row[`${c.id}_cumulative`] = prevChildCum + row[`${c.id}_earn`] - row[`${c.id}_spend`];
       });
-      
-      return row;
-    });
+
+      acc.push(row);
+      return acc;
+    }, []);
   }, [filtered, chartPeriod, startDate, endDate, children]);
 
   const [hiddenItems, setHiddenItems] = useState(new Set());

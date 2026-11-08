@@ -1,23 +1,17 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import Header from '../components/Header';
-import Confetti from '../components/Confetti';
-import { getChildById, getTotalPoints, getTasks, addPoints, getRewards, getCategories } from '../data/store';
+import { getChildById, getTotalPoints, getCategories } from '../data/store';
 import { renderRuby } from '../utils/format';
 
 export default function ChildDashboard() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [child, setChild] = useState(null);
-  const [success, setSuccess] = useState(null);
+  const child = getChildById(id);
 
-  const refreshChild = () => {
-    const c = getChildById(id);
-    if (!c) { navigate('/'); return; }
-    setChild(c);
-  };
-
-  useEffect(() => { refreshChild(); }, [id]);
+  useEffect(() => {
+    if (!child) navigate('/');
+  }, [child, navigate]);
 
   if (!child) return null;
 

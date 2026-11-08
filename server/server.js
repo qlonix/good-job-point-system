@@ -295,7 +295,7 @@ app.post('/api/import', (req, res) => {
     } else {
       res.status(400).json({ error: 'Invalid data' });
     }
-  } catch (e) {
+  } catch {
     res.status(400).json({ error: 'Import failed' });
   }
 });

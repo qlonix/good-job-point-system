@@ -3,21 +3,23 @@ import { useEffect, useState } from 'react';
 const COLORS = ['#ff8fab','#90d5ff','#7dddb3','#ffe066','#c4a7ff','#ffb347','#ff6b6b','#6dd5ed'];
 
 export default function Confetti({ duration = 2500, count = 40 }) {
-  const [particles, setParticles] = useState([]);
-
-  useEffect(() => {
-    const p = Array.from({ length: count }, (_, i) => ({
+  // 初期マウント時にパーティクル配列を生成
+  const [particles, setParticles] = useState(() =>
+    Array.from({ length: count }, (_, i) => ({
       id: i,
       x: Math.random() * 100 + '%',
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
       size: Math.random() * 8 + 6,
       dur: Math.random() * 1.5 + 1.5,
       delay: Math.random() * 0.5,
-    }));
-    setParticles(p);
+      borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+    }))
+  );
+
+  useEffect(() => {
     const t = setTimeout(() => setParticles([]), duration);
     return () => clearTimeout(t);
-  }, [count, duration]);
+  }, [duration]);
 
   if (!particles.length) return null;
 
@@ -35,7 +37,7 @@ export default function Confetti({ duration = 2500, count = 40 }) {
             height: p.size,
             background: p.color,
             animationDelay: p.delay + 's',
-            borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+            borderRadius: p.borderRadius,
           }}
         />
       ))}

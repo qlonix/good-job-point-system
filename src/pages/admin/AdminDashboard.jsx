@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import Header from '../../components/Header';
 
 const MENU = [
   { path: '/admin/children', emoji: '👧', label: '子ども管理', sub: 'カード登録・ポイント調整' },

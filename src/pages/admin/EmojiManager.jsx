@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Header from '../../components/Header';
 import { getEmojis, saveEmojis } from '../../data/store';
 import SortableList from '../../components/SortableList';
@@ -6,12 +6,13 @@ import { rectSortingStrategy } from '@dnd-kit/sortable';
 
 export default function EmojiManager() {
   const [type, setType] = useState('task');
-  const [emojis, setEmojis] = useState([]);
+  const [emojis, setEmojis] = useState(() => getEmojis('task'));
   const [newEmoji, setNewEmoji] = useState('');
 
-  useEffect(() => {
-    setEmojis(getEmojis(type));
-  }, [type]);
+  const handleTypeChange = (nextType) => {
+    setType(nextType);
+    setEmojis(getEmojis(nextType));
+  };
 
   const handleAdd = async () => {
     const trimmed = newEmoji.trim();
@@ -62,9 +63,9 @@ export default function EmojiManager() {
       <Header title="✨ 絵文字管理" showBack />
 
       <div className="tabs" style={{ marginBottom: 24 }}>
-        <button className={`tab ${type === 'task' ? 'active' : ''}`} onClick={() => setType('task')}>📋 タスク</button>
-        <button className={`tab ${type === 'reward' ? 'active' : ''}`} onClick={() => setType('reward')}>🎁 ごほうび</button>
-        <button className={`tab ${type === 'avatar' ? 'active' : ''}`} onClick={() => setType('avatar')}>👧 アバター</button>
+        <button className={`tab ${type === 'task' ? 'active' : ''}`} onClick={() => handleTypeChange('task')}>📋 タスク</button>
+        <button className={`tab ${type === 'reward' ? 'active' : ''}`} onClick={() => handleTypeChange('reward')}>🎁 ごほうび</button>
+        <button className={`tab ${type === 'avatar' ? 'active' : ''}`} onClick={() => handleTypeChange('avatar')}>👧 アバター</button>
       </div>
 
       <div className="card" style={{ marginBottom: 24 }}>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
-import { getChildById, getChildren } from '../data/store';
+import { getChildById } from '../data/store';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -45,7 +45,7 @@ export default function HomePage() {
         },
         () => {} // ignore scan errors
       );
-    } catch (e) {
+    } catch {
       setError('カメラを起動できませんでした。カメラの許可を確認してください。');
       setScanning(false);
     }
@@ -66,8 +66,6 @@ export default function HomePage() {
       }
     };
   }, []);
-
-  const children = getChildren();
 
   return (
     <div className="page">

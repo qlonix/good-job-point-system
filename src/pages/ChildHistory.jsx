@@ -1,11 +1,9 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
+import { useState, useMemo } from 'react';
 import Header from '../components/Header';
 import { getChildById } from '../data/store';
 import { renderRuby } from '../utils/format';
 import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-
-const CHILD_COLORS = ['#E91E63', '#2196F3', '#4CAF50', '#FF9800', '#9C27B0', '#00BCD4', '#795548'];
 
 const generatePeriods = (period, startDate, endDate) => {
   const periods = [];
@@ -94,9 +92,8 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function ChildHistory() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [view, setView] = useState('list');
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(() => new Date());
   
   const getLocalDate = (date) => {
     return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
@@ -104,22 +101,49 @@ export default function ChildHistory() {
 
   // Chart state
   const [chartPeriod, setChartPeriod] = useState('day');
-  const todayStr = getLocalDate(new Date());
-  const defaultStart = getLocalDate(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000));
+  const [todayStr] = useState(() => getLocalDate(new Date()));
+  const [defaultStart] = useState(() => getLocalDate(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)));
   const [startDate, setStartDate] = useState(defaultStart);
   const [endDate, setEndDate] = useState(todayStr);
   const [zoomScale, setZoomScale] = useState(1.0);
   const [hiddenItems, setHiddenItems] = useState(new Set());
 
-  // 日付や期間変更時にズームをリセット
-  useEffect(() => {
-    setZoomScale(1.0);
-  }, [startDate, endDate, chartPeriod]);
-
   const child = getChildById(id);
-  if (!child) return null; // Simplified for brevity as per store pattern
+  const history = useMemo(() => (child && Array.isArray(child.history) ? child.history : []), [child]);
 
-  const history = Array.isArray(child.history) ? child.history : [];
+  // Chart logic (copied from Admin logic but filtered for this child)
+  const chartData = useMemo(() => {
+    const periods = generatePeriods(chartPeriod, startDate, endDate);
+    const firstPeriodStart = periods.length > 0 ? periods[0].start : 0;
+    
+    const dataMap = {};
+    periods.forEach(p => {
+      dataMap[p.label] = { name: p.label, earn: 0, spend: 0 };
+    });
+
+    let baseTotal = 0;
+    history.forEach(h => {
+      const dTime = new Date(h.date).getTime();
+      const amt = h.type === 'earn' ? (h.points || 0) : -(h.points || 0);
+      if (dTime < firstPeriodStart) {
+        baseTotal += amt;
+      }
+      const pKey = getPeriodKey(h.date, chartPeriod, startDate, endDate);
+      if (dataMap[pKey]) {
+        dataMap[pKey][h.type] += (h.points || 0);
+      }
+    });
+
+    return periods.reduce((acc, p) => {
+      const row = { ...dataMap[p.label] };
+      const prevCum = acc.length > 0 ? acc[acc.length - 1].cumulative : baseTotal;
+      row.cumulative = prevCum + row.earn - row.spend;
+      acc.push(row);
+      return acc;
+    }, []);
+  }, [history, chartPeriod, startDate, endDate]);
+
+  if (!child) return null;
 
   const earned = history
     .filter((h) => h.type === 'earn')
@@ -161,39 +185,6 @@ export default function ChildHistory() {
   const changeMonth = (offset) => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + offset, 1));
   };
-
-  // Chart logic (copied from Admin logic but filtered for this child)
-  const chartData = useMemo(() => {
-    const periods = generatePeriods(chartPeriod, startDate, endDate);
-    const firstPeriodStart = periods.length > 0 ? periods[0].start : 0;
-    
-    const dataMap = {};
-    periods.forEach(p => {
-      dataMap[p.label] = { name: p.label, earn: 0, spend: 0 };
-    });
-
-    let baseTotal = 0;
-    history.forEach(h => {
-      const dTime = new Date(h.date).getTime();
-      const amt = h.type === 'earn' ? (h.points || 0) : -(h.points || 0);
-      if (dTime < firstPeriodStart) {
-        baseTotal += amt;
-      }
-      const pKey = getPeriodKey(h.date, chartPeriod, startDate, endDate);
-      if (dataMap[pKey]) {
-        dataMap[pKey][h.type] += (h.points || 0);
-      }
-    });
-
-    let runningTotal = baseTotal;
-    return periods.map(p => {
-      const row = dataMap[p.label];
-      runningTotal += row.earn;
-      runningTotal -= row.spend;
-      row.cumulative = runningTotal;
-      return row;
-    });
-  }, [history, chartPeriod, startDate, endDate]);
 
   const toggleItem = (id) => {
     setHiddenItems(prev => {
