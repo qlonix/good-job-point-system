@@ -8,7 +8,7 @@ const MENU = [
   { path: '/admin/rewards', emoji: '🎁', label: 'ごほうび管理', sub: '交換アイテム設定' },
   { path: '/admin/emojis', emoji: '✨', label: '絵文字管理', sub: '選択肢の追加・削除' },
   { path: '/admin/history', emoji: '📊', label: 'ポイント履歴', sub: '獲得・利用の記録' },
-  { path: '/admin/settings', emoji: '⚙️', label: '設定', sub: 'PIN変更・データ管理' },
+  { path: '/admin/settings', emoji: '⚙️', label: '設定', sub: 'PIN・パスキー・データ管理' },
 ];
 
 export default function AdminDashboard() {

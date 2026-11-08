@@ -40,7 +40,8 @@ $defaultData = [
     'avatar_emojis' => ['👧','👦','👶','🧒','👱','🐱','🐶','🐰','🦊','🐻','🐼','🦁','🐮','🐷','🐵','🐧','🐙','🦋'],
     'task_emojis' => ['📝','📖','✍️','🔢','🎨','🎹','🧹','🧼','🍽️','🧺','🗑️','🌱','🐕','👟','🛌','🏫','🧪','📏','🏃','🧽'],
     'reward_emojis' => ['🍦','🍪','🍫','🍭','🍕','🎡','🎮','📺','🧸','📚','🎁','💰','🎟️','🎈','⭐','🎬','🏞️','🍱','🍰','⚽'],
-    'pin' => '0000'
+    'pin' => '0000',
+    'passkeys' => []
 ];
 
 if (!file_exists($dataFile)) {
@@ -56,6 +57,7 @@ else {
     if (!isset($data['task_emojis'])) {
         $data['task_emojis'] = isset($data['emojis']) ? $data['emojis'] : $defaultData['task_emojis'];
     }
+    if (!isset($data['passkeys'])) $data['passkeys'] = [];
 }
 
 function save() {
@@ -334,6 +336,19 @@ if ($route === 'pin') {
         $data['pin'] = $body['pin'];
         save();
         echo json_encode(['success' => true]);
+        exit;
+    }
+}
+
+if ($route === 'passkeys') {
+    if ($method === 'GET') {
+        echo json_encode($data['passkeys'] ?? []);
+        exit;
+    }
+    if ($method === 'POST') {
+        $data['passkeys'] = is_array($body) ? $body : [];
+        save();
+        echo json_encode(['success' => true, 'passkeys' => $data['passkeys']]);
         exit;
     }
 }

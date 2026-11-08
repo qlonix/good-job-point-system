@@ -4,7 +4,8 @@ let localData = {
   children: [],
   tasks: [],
   rewards: [],
-  pin: '0000'
+  pin: '0000',
+  passkeys: []
 };
 
 async function fetchApi(endpoint, options = {}) {
@@ -186,7 +187,7 @@ export async function reorderRewards(newRewards) {
   localData.rewards = newRewards;
 }
 
-// ---------- PIN ----------
+// ---------- PIN & Passkeys ----------
 
 export function getPin() {
   return localData.pin || '0000';
@@ -198,6 +199,18 @@ export async function setPin(newPin) {
     body: JSON.stringify({ pin: newPin }),
   });
   localData.pin = newPin;
+}
+
+export function getPasskeys() {
+  return localData.passkeys || [];
+}
+
+export async function savePasskeys(passkeys) {
+  await fetchApi('/passkeys', {
+    method: 'POST',
+    body: JSON.stringify(passkeys),
+  });
+  localData.passkeys = passkeys;
 }
 
 // ---------- Data Management ----------

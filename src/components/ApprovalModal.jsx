@@ -1,46 +1,44 @@
 import { useState, useEffect } from 'react';
 import { getPin } from '../data/store';
 import { renderRuby } from '../utils/format';
-import { authenticateBiometric, isBiometricRegistered, checkBiometricSupport } from '../utils/auth';
+import { authenticatePasskey, isPasskeyRegistered, checkPasskeySupport } from '../utils/auth';
 
 const IS_WEBKIT = 'WebkitTextSecurity' in document.documentElement.style;
 
 export default function ApprovalModal({ actionLabel, actionEmoji, childName, onApprove, onCancel }) {
   const [pin, setPin] = useState('');
-  const [error, setError] = useState(false);
-  const [mode, setMode] = useState(isBiometricRegistered() ? 'select' : 'pin'); // 'select' | 'pin'
-  const [bioSupported, setBioSupported] = useState(false);
+  const [error, setError] = useState('');
+  const [passkeySupported, setPasskeySupported] = useState(false);
+  const [passkeyRegistered, setPasskeyRegistered] = useState(isPasskeyRegistered());
 
   useEffect(() => {
-    checkBiometricSupport().then(supported => setBioSupported(supported));
+    checkPasskeySupport().then(supported => {
+      setPasskeySupported(supported);
+      setPasskeyRegistered(isPasskeyRegistered());
+    });
   }, []);
 
   const handlePinSubmit = () => {
     if (pin === getPin()) {
       onApprove();
     } else {
-      setError(true);
+      setError('PINが違います');
       setPin('');
-      setTimeout(() => setError(false), 1500);
+      setTimeout(() => setError(''), 1500);
     }
   };
 
-  const handleBiometric = async () => {
+  const handlePasskey = async () => {
+    setError('');
     try {
-      const storedId = localStorage.getItem('gj_credential_id');
-      let success = false;
-
-      if (!storedId) {
-        setMode('pin');
-        return;
+      const assertion = await authenticatePasskey();
+      if (assertion) {
+        onApprove();
       }
-      const assertion = await authenticateBiometric();
-      if (assertion) success = true;
-
-      if (success) onApprove();
     } catch (e) {
-      console.error('Biometric failed:', e);
-      setMode('pin');
+      console.error('Passkey authentication failed:', e);
+      setError('パスキー認証に失敗しました。PINで確認してください。');
+      setTimeout(() => setError(''), 3000);
     }
   };
 
@@ -53,61 +51,53 @@ export default function ApprovalModal({ actionLabel, actionEmoji, childName, onA
           <strong>{renderRuby(childName)}</strong> が 「{actionEmoji} {renderRuby(actionLabel)}」
         </p>
 
-        {mode === 'select' && bioSupported && isBiometricRegistered() && (
-          <div className="flex-col gap-12">
-            <button className="btn btn-pink btn-full btn-lg" onClick={handleBiometric}>
-              🔐 端末の認証で確認
+        {passkeySupported && passkeyRegistered && (
+          <>
+            <button className="btn btn-purple btn-full btn-lg" onClick={handlePasskey} style={{ marginBottom: 12 }}>
+              🔑 パスキーで承認
             </button>
-            <button className="btn btn-purple btn-full" onClick={() => setMode('pin')}>
-              🔢 パスコードで確認
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0 12px', color: 'var(--text-light)', fontSize: '0.8rem' }}>
+              <div style={{ flex: 1, height: 1, background: '#ddd' }} />
+              <span>または PINを入力</span>
+              <div style={{ flex: 1, height: 1, background: '#ddd' }} />
+            </div>
+          </>
+        )}
+
+        <div>
+          {(!passkeySupported || !passkeyRegistered) && (
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginBottom: 12 }}>
+              PIN（4桁）を入力してください
+            </p>
+          )}
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
+            <input
+              className="input"
+              type={IS_WEBKIT ? 'text' : 'password'}
+              inputMode="numeric"
+              maxLength={4}
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              placeholder="0000"
+              style={{ width: 140, textAlign: 'center', fontSize: '1.5rem', fontWeight: 900, letterSpacing: 8, textIndent: 8, padding: 0, WebkitTextSecurity: 'disc' }}
+              autoFocus={!passkeyRegistered}
+              onKeyDown={(e) => e.key === 'Enter' && handlePinSubmit()}
+            />
+          </div>
+          {error && (
+            <p style={{ color: 'var(--pink-dark)', fontWeight: 700, marginBottom: 8, animation: 'wiggle 0.4s ease' }}>
+              {error}
+            </p>
+          )}
+          <div className="flex-col gap-8">
+            <button className="btn btn-pink btn-full" onClick={handlePinSubmit}>
+              🔢 PINで承認 ✓
             </button>
             <button className="btn btn-outline btn-full" onClick={onCancel}>
               キャンセル
             </button>
           </div>
-        )}
-
-        {mode === 'pin' && (
-          <div>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginBottom: 12 }}>
-              パスコードを入力してください
-            </p>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
-              <input
-                className="input"
-                type={IS_WEBKIT ? 'text' : 'password'}
-                inputMode="numeric"
-                maxLength={4}
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                placeholder="0000"
-                style={{ width: 140, textAlign: 'center', fontSize: '1.5rem', fontWeight: 900, letterSpacing: 8, textIndent: 8, padding: 0, WebkitTextSecurity: 'disc' }}
-                autoFocus
-                onKeyDown={(e) => e.key === 'Enter' && handlePinSubmit()}
-              />
-            </div>
-            {error && (
-              <p style={{ color: 'var(--pink-dark)', fontWeight: 700, marginBottom: 8, animation: 'wiggle 0.4s ease' }}>
-                パスコードが違います
-              </p>
-            )}
-            <div className="flex-col gap-8">
-              <button className="btn btn-pink btn-full" onClick={handlePinSubmit}>
-                確認 ✓
-              </button>
-              {bioSupported && isBiometricRegistered() && (
-                <button className="btn btn-outline btn-full" onClick={() => setMode('select')}>
-                  ← 戻る
-                </button>
-              )}
-              {(!bioSupported || !isBiometricRegistered()) && (
-                <button className="btn btn-outline btn-full" onClick={onCancel}>
-                  キャンセル
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

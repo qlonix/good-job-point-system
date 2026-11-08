@@ -271,6 +271,17 @@ app.post('/api/pin', (req, res) => {
   res.json({ success: true });
 });
 
+app.get('/api/passkeys', (req, res) => {
+  res.json(load().passkeys || []);
+});
+
+app.post('/api/passkeys', (req, res) => {
+  const data = load();
+  data.passkeys = Array.isArray(req.body) ? req.body : [];
+  save(data);
+  res.json({ success: true, passkeys: data.passkeys });
+});
+
 app.post('/api/import', (req, res) => {
   try {
     const data = req.body;

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header';
-import { getPin, setPin, exportData, importData, resetData, resetAllPoints, getChildren, resetChildPoints } from '../../data/store';
-import { isBiometricRegistered, clearBiometric, checkBiometricSupport, registerBiometric } from '../../utils/auth';
+import { getPin, setPin, getPasskeys, exportData, importData, resetData, resetAllPoints, getChildren, resetChildPoints } from '../../data/store';
+import { isPasskeyRegistered, clearPasskeys, deletePasskey, checkPasskeySupport, registerPasskey } from '../../utils/auth';
 
 const IS_WEBKIT = 'WebkitTextSecurity' in document.documentElement.style;
 
@@ -12,14 +12,21 @@ export default function Settings() {
   const [newPin, setNewPin] = useState('');
   const [pinMsg, setPinMsg] = useState('');
   const [dataMsg, setDataMsg] = useState('');
-  const [bioSupported, setBioSupported] = useState(false);
-  const [bioRegistered, setBioRegistered] = useState(isBiometricRegistered());
+  const [passkeySupported, setPasskeySupported] = useState(false);
+  const [passkeyRegistered, setPasskeyRegistered] = useState(isPasskeyRegistered());
+  const [passkeys, setPasskeys] = useState(getPasskeys());
+  const [passkeyName, setPasskeyName] = useState('');
+  const [passkeyMsg, setPasskeyMsg] = useState('');
   const [resetChildId, setResetChildId] = useState('');
-  const [children, setChildren] = useState([]);
+  const [children, setChildren] = useState(() => getChildren());
+
+  const refreshPasskeys = () => {
+    setPasskeyRegistered(isPasskeyRegistered());
+    setPasskeys([...getPasskeys()]);
+  };
 
   useEffect(() => {
-    setChildren(getChildren());
-    checkBiometricSupport().then(supported => setBioSupported(supported));
+    checkPasskeySupport().then(supported => setPasskeySupported(supported));
   }, []);
 
   const handlePinChange = () => {
@@ -30,23 +37,36 @@ export default function Settings() {
     setCurrentPin(''); setNewPin('');
   };
 
-  const handleRegisterBiometric = async () => {
+  const handleRegisterPasskey = async () => {
+    setPasskeyMsg('');
     try {
-      const credential = await registerBiometric();
+      const credential = await registerPasskey(passkeyName.trim());
       if (credential) {
-        setBioRegistered(true);
-        alert('端末の認証を登録しました');
+        setPasskeyName('');
+        refreshPasskeys();
+        setPasskeyMsg('✅ パスキーを登録しました');
+        setTimeout(() => setPasskeyMsg(''), 3000);
       }
-    } catch (e) {
-      alert('登録に失敗しました。この端末ではサポートされていない可能性があります。');
+    } catch {
+      setPasskeyMsg('❌ パスキーの登録に失敗しました');
     }
   };
 
-  const handleClearBiometric = () => {
-    if (confirm('この端末の認証登録を解除しますか？')) {
-      clearBiometric();
-      setBioRegistered(false);
-      alert('解除しました');
+  const handleDeletePasskey = async (id, name) => {
+    if (confirm(`パスキー「${name || '登録済みパスキー'}」を削除しますか？`)) {
+      await deletePasskey(id);
+      refreshPasskeys();
+      setPasskeyMsg('✅ パスキーを削除しました');
+      setTimeout(() => setPasskeyMsg(''), 3000);
+    }
+  };
+
+  const handleClearPasskeys = async () => {
+    if (confirm('すべてのパスキー登録を解除しますか？')) {
+      await clearPasskeys();
+      refreshPasskeys();
+      setPasskeyMsg('✅ すべてのパスキーを解除しました');
+      setTimeout(() => setPasskeyMsg(''), 3000);
     }
   };
 
@@ -125,7 +145,7 @@ export default function Settings() {
       <Header title="⚙️ 設定" showBack />
 
       <div className="card" style={{ marginBottom: 16 }}>
-        <h3 style={{ marginBottom: 12 }}>🔑 PINコード変更</h3>
+        <h3 style={{ marginBottom: 12 }}>🔢 PIN変更</h3>
         <div className="form-group">
           <label className="label">現在のPIN</label>
           <input className="input" type={IS_WEBKIT ? 'text' : 'password'} inputMode="numeric" maxLength={4} value={currentPin} onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, ''))} style={{ WebkitTextSecurity: 'disc' }} />
@@ -139,24 +159,64 @@ export default function Settings() {
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
-        <h3 style={{ marginBottom: 12 }}>🔐 端末の認証（顔・指紋・画面ロック）</h3>
-        {!bioSupported ? (
+        <h3 style={{ marginBottom: 12 }}>🔑 パスキー管理</h3>
+        {!passkeySupported ? (
           <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}>
-            この端末・ブラウザは端末の認証（WebAuthn）をサポートしていません。
+            この端末・ブラウザはパスキー（WebAuthn）をサポートしていません。
           </p>
-        ) : bioRegistered ? (
-          <div className="flex-col gap-8">
-            <p style={{ fontSize: '0.85rem', color: '#2a7d56', fontWeight: 700 }}>
-              ✅ この端末の認証が登録されています
-            </p>
-            <button className="btn btn-outline btn-full" onClick={handleClearBiometric}>端末の認証を解除する</button>
-          </div>
         ) : (
           <div className="flex-col gap-8">
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}>
-              この端末の認証機能を登録すると、次回からパスコード入力の手間を省けます。
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginBottom: 4 }}>
+              パスキーを登録すると、顔認証・指紋認証・画面ロック等で素早くログインや承認ができます（複数端末の登録に対応）。
             </p>
-            <button className="btn btn-admin btn-full" onClick={handleRegisterBiometric}>この端末を登録する</button>
+
+            {passkeyRegistered && (
+              <div style={{ marginBottom: 8 }}>
+                <p style={{ fontSize: '0.85rem', color: '#2a7d56', fontWeight: 700, marginBottom: 8 }}>
+                  ✅ パスキーが登録されています
+                </p>
+                {passkeys.length > 0 && (
+                  <div className="flex-col gap-8" style={{ marginBottom: 8 }}>
+                    {passkeys.map((pk, idx) => {
+                      const id = typeof pk === 'string' ? pk : pk.id;
+                      const name = typeof pk === 'string' ? `パスキー #${idx + 1}` : pk.name;
+                      return (
+                        <div key={id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f8f9fa', borderRadius: 8, border: '1px solid #eee' }}>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 700 }}>🔑 {name}</span>
+                          <button className="btn btn-danger" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => handleDeletePasskey(id, name)}>削除</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                className="input"
+                type="text"
+                placeholder="パスキー名（例: パパのスマホ）"
+                value={passkeyName}
+                onChange={(e) => setPasskeyName(e.target.value)}
+                style={{ flex: 1, fontSize: '0.9rem' }}
+              />
+              <button className="btn btn-admin" style={{ whiteSpace: 'nowrap' }} onClick={handleRegisterPasskey}>
+                ＋ パスキー追加
+              </button>
+            </div>
+
+            {passkeyMsg && (
+              <p style={{ fontSize: '0.85rem', fontWeight: 700, color: passkeyMsg.includes('✅') ? '#2a7d56' : 'var(--pink-dark)', marginTop: 4 }}>
+                {passkeyMsg}
+              </p>
+            )}
+
+            {passkeyRegistered && (
+              <button className="btn btn-outline btn-full" style={{ marginTop: 8 }} onClick={handleClearPasskeys}>
+                すべてのパスキーを解除する
+              </button>
+            )}
           </div>
         )}
       </div>
