@@ -106,11 +106,21 @@ if ($route === 'children' && $method === 'GET') {
 }
 
 if ($route === 'children' && $method === 'POST') {
+    $initialPoints = [];
+    if (!empty($data['categories']) && is_array($data['categories'])) {
+        foreach ($data['categories'] as $cat) {
+            $initialPoints[$cat['id']] = 0;
+        }
+    } else {
+        $initialPoints = ['otetsudai' => 0, 'obenkyo' => 0, 'seikatsu' => 0];
+    }
     $child = [
         'id' => generateId(),
         'name' => $body['name'],
         'avatar' => $body['avatar'] ?? '👧',
-        'points' => ['otetsudai' => 0, 'obenkyo' => 0, 'seikatsu' => 0],
+        'avatarImage' => $body['avatarImage'] ?? null,
+        'headerImage' => $body['headerImage'] ?? null,
+        'points' => $initialPoints,
         'history' => []
     ];
     $data['children'][] = $child;

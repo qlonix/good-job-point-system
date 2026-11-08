@@ -29,12 +29,16 @@ export default function Settings() {
     checkPasskeySupport().then(supported => setPasskeySupported(supported));
   }, []);
 
-  const handlePinChange = () => {
+  const handlePinChange = async () => {
     if (currentPin !== getPin()) { setPinMsg('現在のPINが違います'); return; }
     if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) { setPinMsg('4桁の数字を入力してください'); return; }
-    setPin(newPin);
-    setPinMsg('✅ PINを変更しました');
-    setCurrentPin(''); setNewPin('');
+    try {
+      await setPin(newPin);
+      setPinMsg('✅ PINを変更しました');
+      setCurrentPin(''); setNewPin('');
+    } catch {
+      setPinMsg('❌ PINの変更に失敗しました');
+    }
   };
 
   const handleRegisterPasskey = async () => {
@@ -86,8 +90,9 @@ export default function Settings() {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        if (importData(ev.target.result)) {
+      reader.onload = async (ev) => {
+        // インポート完了を待ってから画面遷移する
+        if (await importData(ev.target.result)) {
           alert('データをインポートしました');
           navigate('/admin/dashboard');
         } else {
@@ -99,11 +104,20 @@ export default function Settings() {
     input.click();
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (confirm('本当にすべてのデータをリセットしますか？\nこの操作は取り消せません。')) {
-      resetData();
-      alert('データをリセットしました');
-      navigate('/admin/dashboard');
+      try {
+        const ok = await resetData();
+        if (ok) {
+          alert('データをリセットしました');
+          navigate('/admin/dashboard');
+        } else {
+          setDataMsg('❌ リセットに失敗しました');
+        }
+      } catch (e) {
+        console.error('Reset data failed:', e);
+        setDataMsg('❌ リセットに失敗しました');
+      }
     }
   };
 

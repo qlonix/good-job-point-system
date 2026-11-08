@@ -40,10 +40,10 @@ export function getChildById(id) {
   return localData.children.find((c) => String(c.id) === String(id)) || null;
 }
 
-export async function addChild({ name, avatar }) {
+export async function addChild({ name, avatar, avatarImage = null, headerImage = null }) {
   const child = await fetchApi('/children', {
     method: 'POST',
-    body: JSON.stringify({ name, avatar }),
+    body: JSON.stringify({ name, avatar, avatarImage, headerImage }),
   });
   localData.children.push(child);
   return child;
@@ -234,8 +234,40 @@ export async function importData(jsonString) {
   }
 }
 
+// 全データを初期状態にリセットする
 export async function resetData() {
-  console.warn('Reset not supported via API client directly');
+  const defaultData = {
+    children: [],
+    categories: [
+      { id: 'seikatsu', name: '[生活(せいかつ)]', emoji: '🏠', color: '#ff9a9e' },
+      { id: 'otetsudai', name: 'おてつだい', emoji: '🧹', color: '#3db87a' },
+      { id: 'obenkyo', name: 'おべんきょう', emoji: '📚', color: '#4fa8e0' },
+    ],
+    tasks: [
+      { id: 't1', name: '[食器(しょっき)]を[片(かた)付(つ)]ける', emoji: '🍽️', points: 10, category: 'seikatsu' },
+      { id: 't2', name: '[部屋(へや)]を[掃除(そうじ)]する', emoji: '🧹', points: 15, category: 'otetsudai' },
+      { id: 't3', name: '[洗濯物(せんたくもの)]をたたむ', emoji: '👕', points: 10, category: 'otetsudai' },
+      { id: 't4', name: 'ペットの[世話(せわ)]をする', emoji: '🐕', points: 10, category: 'otetsudai' },
+      { id: 't5', name: 'ゴミを[出(だ)]す', emoji: '🗑️', points: 5, category: 'seikatsu' },
+      { id: 't8', name: '[宿題(しゅくだい)]をやる', emoji: '📝', points: 15, category: 'obenkyo' },
+      { id: 't9', name: '[本(ほん)]を[読(よ)]む', emoji: '📖', points: 10, category: 'obenkyo' },
+      { id: 't10', name: '[漢字(かんじ)]の[練習(れんしゅう)]', emoji: '✍️', points: 10, category: 'obenkyo' },
+    ],
+    rewards: [
+      { id: 'r1', name: 'シール1[枚(まい)]', emoji: '⭐', cost: 20 },
+      { id: 'r2', name: 'おやつ', emoji: '🍪', cost: 30 },
+      { id: 'r3', name: 'ゲーム15[分(ふん)]', emoji: '🎮', cost: 50 },
+      { id: 'r4', name: 'おこづかい100[円(えん)]', emoji: '💰', cost: 100 },
+      { id: 'r5', name: 'すきなおでかけ', emoji: '🎡', cost: 200 },
+    ],
+    avatar_emojis: ['👧','👦','👶','🧒','👱','🐱','🐶','🐰','🦊','🐻','🐼','🦁','🐮','🐷','🐵','🐧','🐙','🦋'],
+    task_emojis: ['📝','📖','✍️','🔢','🎨','🎹','🧹','🧼','🍽️','🧺','🗑️','🌱','🐕','👟','🛌','🏫','🧪','📏','🏃','🧽'],
+    reward_emojis: ['🍦','🍪','🍫','🍭','🍕','🎡','🎮','📺','🧸','📚','🎁','💰','🎟️','🎈','⭐','🎬','🏞️','🍱','🍰','⚽'],
+    pin: '0000',
+    passkeys: [],
+  };
+  localStorage.removeItem('gj_credential_id');
+  return await importData(JSON.stringify(defaultData));
 }
 
 export async function resetAllPoints() {

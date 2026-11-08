@@ -5,7 +5,7 @@ import { load, save, generateId } from './db.js';
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '10mb' }));
 
 // Helpers to mirror the old store.js exact logic
 function getTotalPoints(child) {
@@ -28,13 +28,24 @@ app.get('/api/children/:id', (req, res) => {
 });
 
 app.post('/api/children', (req, res) => {
-  const { name, avatar } = req.body;
+  const { name, avatar, avatarImage = null, headerImage = null } = req.body;
   const data = load();
+  // 登録済みカテゴリに基づいて初期ポイントを生成
+  const initialPoints = {};
+  if (Array.isArray(data.categories) && data.categories.length > 0) {
+    data.categories.forEach(c => { initialPoints[c.id] = 0; });
+  } else {
+    initialPoints.seikatsu = 0;
+    initialPoints.otetsudai = 0;
+    initialPoints.obenkyo = 0;
+  }
   const child = {
     id: generateId(),
     name,
     avatar: avatar || '👧',
-    points: { otetsudai: 0, obenkyo: 0 },
+    avatarImage,
+    headerImage,
+    points: initialPoints,
     history: [],
   };
   data.children.push(child);
@@ -61,13 +72,6 @@ app.put('/api/children/:id', (req, res) => {
 app.delete('/api/children/:id', (req, res) => {
   const data = load();
   data.children = data.children.filter(c => c.id !== req.params.id);
-  save(data);
-  res.json({ success: true });
-});
-
-app.post('/api/children/reorder', (req, res) => {
-  const data = load();
-  data.children = req.body;
   save(data);
   res.json({ success: true });
 });
