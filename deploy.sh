@@ -23,6 +23,7 @@ ssh ${DEPLOY_USER}@${DEPLOY_HOST} "rm -rf ~/${DEPLOY_PATH}assets"
 echo "📤 Uploading files to ${DEPLOY_HOST}:${DEPLOY_PATH}..."
 scp -r dist/. ${DEPLOY_USER}@${DEPLOY_HOST}:~/${DEPLOY_PATH}
 scp server/server.js server/db.js ${DEPLOY_USER}@${DEPLOY_HOST}:~/${DEPLOY_PATH}server/
+ssh ${DEPLOY_USER}@${DEPLOY_HOST} "chmod 755 ~/${DEPLOY_PATH}assets && chmod 644 ~/${DEPLOY_PATH}assets/*"
 
 echo "🔄 Restarting server..."
 ssh ${DEPLOY_USER}@${DEPLOY_HOST} "export PATH=\$PATH:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin; [ -f ~/.zshrc ] && source ~/.zshrc; [ -f ~/.bashrc ] && source ~/.bashrc; cd ~/${DEPLOY_PATH}server && (pm2 restart gj-server || pm2 start server.js --name gj-server || pkill -f server.js; nohup node server.js > output.log 2>&1 &)"
