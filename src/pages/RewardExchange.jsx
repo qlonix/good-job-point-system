@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Header from '../components/Header';
 import Confetti from '../components/Confetti';
 import ApprovalModal from '../components/ApprovalModal';
-import { getRewards, spendPoints, getChildById, getTotalPoints } from '../data/store';
+import { getRewards, spendPoints, getChildById, getTotalPoints, updateChild } from '../data/store';
 import { renderRuby } from '../utils/format';
 
 export default function RewardExchange() {
@@ -13,10 +13,20 @@ export default function RewardExchange() {
   const [child, setChild] = useState(getChildById(id));
   const [success, setSuccess] = useState(null);
   const [error, setError] = useState('');
+  const [infoMsg, setInfoMsg] = useState('');
   const [confirming, setConfirming] = useState(null);
 
   if (!child) return null;
   const total = getTotalPoints(child);
+
+  const handleSetTarget = async (rewardId) => {
+    const isCancel = child.targetRewardId === rewardId;
+    const nextId = isCancel ? null : rewardId;
+    await updateChild(id, { targetRewardId: nextId });
+    setChild(getChildById(id));
+    setInfoMsg(isCancel ? '目標を解除しました' : '🎯 目標にセットしました！');
+    setTimeout(() => setInfoMsg(''), 2500);
+  };
 
   const handleReward = async (rewardId) => {
     const result = await spendPoints(id, rewardId);
@@ -44,22 +54,75 @@ export default function RewardExchange() {
         </div>
       )}
 
+      {infoMsg && (
+        <div style={{ color: '#2a7d56', background: '#e8f5e9', padding: '8px 16px', borderRadius: 12, fontWeight: 800, textAlign: 'center', marginBottom: 12, animation: 'fadeIn 0.3s ease' }}>
+          {infoMsg}
+        </div>
+      )}
+
       <div className="task-grid">
         {rewards.map((r) => {
           const canAfford = total >= r.cost;
+          const isTarget = child.targetRewardId === r.id;
           return (
-            <button
+            <div
               key={r.id}
               className={`task-card reward-card ${canAfford ? '' : 'disabled'}`}
+              style={{ cursor: canAfford ? 'pointer' : 'default' }}
               onClick={() => canAfford && setConfirming(r)}
             >
+              {isTarget ? (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    background: '#ffe066',
+                    color: '#7a5a00',
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: 12,
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.08)'
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSetTarget(r.id);
+                  }}
+                  title="クリックで解除"
+                >
+                  ★ 目標中
+                </span>
+              ) : (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    background: '#f0edf0',
+                    color: 'var(--text-light)',
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    padding: '2px 6px',
+                    borderRadius: 12,
+                    cursor: 'pointer'
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSetTarget(r.id);
+                  }}
+                >
+                  🎯 目標にする
+                </span>
+              )}
+
               <span className="task-emoji">{r.emoji}</span>
               <span className="task-name">{renderRuby(r.name)}</span>
               <span className="task-points">{r.cost} pt</span>
               {!canAfford && (
                 <span className="reward-shortage">あと {r.cost - total} pt</span>
               )}
-            </button>
+            </div>
           );
         })}
       </div>

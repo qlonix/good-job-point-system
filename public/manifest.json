@@ -1,0 +1,25 @@
+{
+  "name": "がんばったねポイント",
+  "short_name": "がんばったね",
+  "description": "子どもが「おてつだい」や「おべんきょう」を通じて楽しくポイントを貯め、景品と交換できるWebアプリ",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff5f7",
+  "theme_color": "#ff8fab",
+  "icons": [
+    {
+      "src": "favicon.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "favicon.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

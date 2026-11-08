@@ -1,24 +1,43 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '../components/Header';
-import { getChildById, getTotalPoints, getCategories } from '../data/store';
+import { getChildById, getTotalPoints, getCategories, getRewards, updateChild } from '../data/store';
 import { renderRuby } from '../utils/format';
 
 export default function ChildDashboard() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [localTargetId, setLocalTargetId] = useState(undefined);
+  const [showGoalModal, setShowGoalModal] = useState(false);
+
   const child = getChildById(id);
 
   useEffect(() => {
-    if (!child) navigate('/');
+    if (!child) {
+      navigate('/');
+    }
   }, [child, navigate]);
 
   if (!child) return null;
 
   const total = getTotalPoints(child);
   const categories = getCategories();
+  const rewards = getRewards();
   const categorySum = categories.reduce((sum, c) => sum + (child.points[c.id] || 0), 0);
   const otherPoints = total - categorySum;
+
+  const activeTargetId = localTargetId !== undefined ? localTargetId : child.targetRewardId;
+  const targetReward = rewards.find((r) => r.id === activeTargetId) || null;
+  const targetCost = targetReward ? targetReward.cost : 0;
+  const progressPercent = targetCost > 0 ? Math.min(100, Math.round((total / targetCost) * 100)) : 0;
+  const isGoalReached = targetReward && total >= targetReward.cost;
+  const shortage = targetReward ? Math.max(0, targetReward.cost - total) : 0;
+
+  const handleSetGoal = async (rewardId) => {
+    await updateChild(id, { targetRewardId: rewardId });
+    setLocalTargetId(rewardId);
+    setShowGoalModal(false);
+  };
 
   const earnActions = categories.map((c) => ({
     key: c.id,
@@ -108,6 +127,86 @@ export default function ChildDashboard() {
           </div>
         </div>
 
+        {/* 目標（ほしいごほうび）と進捗バー */}
+        {targetReward ? (
+          <div className={`goal-card ${isGoalReached ? 'reached' : ''}`}>
+            <div className="goal-header">
+              <div className="goal-title-wrap">
+                <span style={{ fontSize: '1.4rem' }}>{targetReward.emoji}</span>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-light)', display: 'block', lineHeight: 1 }}>
+                    {renderRuby('めざす [ごほうび]')}
+                  </span>
+                  <strong style={{ fontSize: '1.05rem' }}>{renderRuby(targetReward.name)}</strong>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <span className={`goal-badge ${isGoalReached ? 'reached' : ''}`}>
+                  {isGoalReached ? '🎉 たっせい！' : `${progressPercent}%`}
+                </span>
+                <button
+                  className="btn btn-sm btn-outline"
+                  style={{ padding: '4px 8px', fontSize: '0.75rem', minWidth: 0, border: 'none', background: '#f5f5f5' }}
+                  onClick={() => setShowGoalModal(true)}
+                  title="目標を変更"
+                >
+                  かえる
+                </button>
+              </div>
+            </div>
+
+            {/* 進捗バー */}
+            <div className="progress-bar-bg">
+              <div
+                className={`progress-bar-fill ${isGoalReached ? 'reached' : ''}`}
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+
+            <div className="goal-footer">
+              <span style={{ color: isGoalReached ? '#2e7d32' : 'var(--text-light)', fontSize: '0.85rem' }}>
+                {isGoalReached ? (
+                  'いつでも交換できるよ！'
+                ) : (
+                  <>あと <strong style={{ color: 'var(--pink-dark)', fontSize: '1.1rem' }}>{shortage}</strong> pt</>
+                )}
+              </span>
+              <span style={{ color: 'var(--text-light)', fontSize: '0.8rem' }}>
+                {total} / {targetReward.cost} pt
+              </span>
+            </div>
+
+            {isGoalReached && (
+              <button
+                className="btn btn-yellow btn-full btn-sm"
+                style={{ marginTop: 10, fontWeight: 900 }}
+                onClick={() => navigate(`/child/${id}/rewards`)}
+              >
+                🎁 今すぐごほうびをもらう！
+              </button>
+            )}
+          </div>
+        ) : (
+          <div
+            className="goal-card"
+            style={{
+              borderStyle: 'dashed',
+              textAlign: 'center',
+              cursor: 'pointer',
+              background: 'rgba(255, 255, 255, 0.7)'
+            }}
+            onClick={() => setShowGoalModal(true)}
+          >
+            <div style={{ fontSize: '1.5rem', marginBottom: 4 }}>🎯</div>
+            <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--pink-dark)' }}>
+              {renderRuby('ほしい [ごほうび] を えらぼう！')}
+            </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-light)', marginTop: 2 }}>
+              目標を決めると、あと何ポイントかがわかるよ
+            </p>
+          </div>
+        )}
+
         <div className="dashboard-section-label">{renderRuby('ポイントをもらう')}</div>
         <div className="action-grid" style={{ marginTop: 0 }}>
           {earnActions.map((a) => (
@@ -147,6 +246,79 @@ export default function ChildDashboard() {
           </button>
         </div>
       </div>
+
+      {/* 目標選択モーダル */}
+      {showGoalModal && (
+        <div className="modal-overlay" onClick={() => setShowGoalModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ textAlign: 'center', marginBottom: 6 }}>🎯 目標をえらぶ</h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', textAlign: 'center', marginBottom: 16 }}>
+              めざしたいごほうびを1つえらんでね！
+            </p>
+
+            <div style={{ maxHeight: '55vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {rewards.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--text-light)', padding: 16 }}>
+                  ごほうびがまだ登録されていません
+                </p>
+              ) : (
+                rewards.map((r) => {
+                  const isSelected = activeTargetId === r.id;
+                  return (
+                    <button
+                      key={r.id}
+                      className="card"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '12px 14px',
+                        border: isSelected ? '2px solid var(--pink)' : '1px solid #eee',
+                        background: isSelected ? 'var(--bg)' : '#fff',
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                      }}
+                      onClick={() => handleSetGoal(r.id)}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: '1.8rem' }}>{r.emoji}</span>
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{renderRuby(r.name)}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-light)' }}>{r.cost} ポイント</div>
+                        </div>
+                      </div>
+                      <div>
+                        {isSelected ? (
+                          <span className="goal-badge">★ 目標中</span>
+                        ) : (
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-light)' }}>えらぶ ›</span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="flex-col gap-8" style={{ marginTop: 16 }}>
+              {activeTargetId && (
+                <button
+                  className="btn btn-outline btn-full btn-sm"
+                  onClick={() => handleSetGoal(null)}
+                >
+                  目標を解除する
+                </button>
+              )}
+              <button
+                className="btn btn-outline btn-full"
+                onClick={() => setShowGoalModal(false)}
+              >
+                とじる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
